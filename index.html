@@ -61,6 +61,12 @@
             box-shadow: 0 1px 0 #0c4a6e, 0 4px 10px rgba(15, 23, 42, 0.45);
         }
 
+        @media (orientation: portrait) {
+            #mobileControls {
+                bottom: calc(1.25rem + 38px);
+            }
+        }
+
         #runnerGifLayer {
             position: absolute;
             top: 0;
@@ -767,10 +773,17 @@
             }
         }
 
+        function getPortraitLiftPx() {
+            const w = state.width || window.innerWidth || 0;
+            const h = state.height || window.innerHeight || 0;
+            // Remontée d'environ 1 cm (~38 px) uniquement sur téléphone à la verticale (portrait)
+            return h > w ? 38 : 0;
+        }
+
         function computeLanes() {
             const h = state.height || window.innerHeight || 600;
-            // Descente d'environ 2 cm (~76 px) pour aligner les 3 lignes sur le décor de la route
-            const dropPx = 76;
+            // Descente de base de ~76 px puis remontée portrait d'environ 1 cm (~38 px)
+            const dropPx = 76 - getPortraitLiftPx();
             const maxLaneY = h - 8;
             const topLaneY = Math.min(maxLaneY, Math.round(h * 0.78) + dropPx);
             const midLaneY = Math.min(maxLaneY, Math.round(h * 0.86) + dropPx);
@@ -1370,11 +1383,12 @@
         }
 
         function drawMontrealBackdrop() {
+            const portraitLift = getPortraitLiftPx();
             if (hasCustomBg && customBgImage.naturalWidth > 0 && customBgImage.naturalHeight > 0) {
                 const scale = Math.max(state.width / customBgImage.naturalWidth, state.height / customBgImage.naturalHeight);
                 const drawW = Math.ceil(customBgImage.naturalWidth * scale);
                 const drawH = Math.ceil(customBgImage.naturalHeight * scale);
-                const offsetY = Math.round((state.height - drawH) * 0.5);
+                const offsetY = Math.round((state.height - drawH) * 0.5) - portraitLift;
                 const scrollOffset = -(state.bgScroll % drawW);
 
                 for (let x = scrollOffset - drawW; x < state.width + drawW; x += drawW) {
@@ -1385,12 +1399,12 @@
             }
 
             const horizonY = state.groundY;
-            const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
+            const skyGrad = ctx.createLinearGradient(0, -portraitLift, 0, horizonY);
             skyGrad.addColorStop(0, '#8fb2d9');
             skyGrad.addColorStop(0.6, '#c7dcf2');
             skyGrad.addColorStop(1, '#e8f1fa');
             ctx.fillStyle = skyGrad;
-            ctx.fillRect(0, 0, state.width, horizonY);
+            ctx.fillRect(0, -portraitLift, state.width, horizonY + portraitLift);
         }
 
         function drawObstacles() {
