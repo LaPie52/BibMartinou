@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Le Runner Hivernal - Martinou &amp; Bibinou</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            touch-action: none;
+        }
+        #game-shell {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(12px);
+            border: 2px solid rgba(255, 255, 255, 0.85);
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.35);
+        }
+        .character-card {
+            transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+        }
+        .character-card.selected {
+            border-color: #dc2626;
+            background: #fef2f2;
+            box-shadow: 0 10px 24px rgba(220, 38, 38, 0.18);
+            transform: translateY(-2px);
+        }
+        .btn-primary-canada {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            box-shadow: 0 10px 22px rgba(185, 28, 28, 0.35);
+            transition: transform 0.14s ease, filter 0.14s ease;
+        }
+        .btn-primary-canada:hover {
+            filter: brightness(1.05);
+        }
+        .btn-primary-canada:active {
+            transform: scale(0.98);
+        }
+        .btn-photo {
+            transition: transform 0.12s ease, background-color 0.12s ease;
+        }
+        .btn-photo:active {
+            transform: scale(0.96);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-shell">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Écran de sélection / personnalisation -->
+        <div id="start-overlay" class="fixed inset-0 z-20 flex items-center justify-center p-4 bg-slate-950/45 backdrop-blur-[2px]">
+            <div class="glass-card w-full max-w-md rounded-3xl p-5 sm:p-6 text-center text-slate-900 max-h-[94vh] overflow-y-auto">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-extrabold tracking-wide uppercase mb-2">
+                    <span>🍁</span> Montréal • Patinoire &amp; Hiver
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                    Course aux Érables
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-600 mt-1 mb-4">
+                    Choisissez <strong>Martinou</strong> ou <strong>Bibinou</strong>, patinez sur la route verglacée et ajoutez vos photos !
+                </p>
+
+                <!-- Choix 1 joueur : Martinou ou Bibinou -->
+                <div class="grid grid-cols-2 gap-3 mb-4">
+                    <div id="card-martinou" class="character-card selected rounded-2xl border-2 border-slate-200 bg-white p-3 flex flex-col items-center cursor-pointer" role="button" tabindex="0" aria-pressed="true">
+                        <canvas id="preview-martinou" width="84" height="84" class="rounded-full shadow-sm mb-2"></canvas>
+                        <div class="font-extrabold text-sm text-slate-900">Martinou</div>
+                        <div class="text-[11px] text-slate-500 mb-2">Patineur • Tuque bleue</div>
+                        <label class="btn-photo w-full py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer">
+                            📷 Photo
+                            <input type="file" id="file-martinou" accept="image/*" class="hidden">
+                        </label>
+                    </div>
+
+                    <div id="card-bibinou" class="character-card rounded-2xl border-2 border-slate-200 bg-white p-3 flex flex-col items-center cursor-pointer" role="button" tabindex="0" aria-pressed="false">
+                        <canvas id="preview-bibinou" width="84" height="84" class="rounded-full shadow-sm mb-2"></canvas>
+                        <div class="font-extrabold text-sm text-slate-900">Bibinou</div>
+                        <div class="text-[11px] text-slate-500 mb-2">Patineuse • Tuque rouge</div>
+                        <label class="btn-photo w-full py-1.5 px-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold cursor-pointer">
+                            📷 Photo
+                            <input type="file" id="file-bibinou" accept="image/*" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <div id="photo-status" class="text-xs font-bold text-emerald-700 min-h-[16px] mb-2"></div>
+
+                <div class="flex items-center justify-between gap-2 bg-slate-100 border border-slate-200 rounded-2xl px-3 py-2 mb-3 text-xs">
+                    <span class="font-bold text-slate-700">🌉 Montréal : Pont &amp; Chinatown • 🎄 Musique</span>
+                    <button type="button" id="music-toggle-btn" class="btn-photo !w-auto !py-1.5 !px-2.5 cursor-pointer rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700">
+                        🎄 Musique : ON
+                    </button>
+                </div>
+
+                <div class="bg-white/85 border border-slate-200 rounded-2xl p-3 mb-4 text-left text-xs text-slate-700 leading-relaxed">
+                    <div class="font-extrabold text-slate-900 mb-1">Comment jouer (1 doigt ou clic) :</div>
+                    <div>• <strong>Tap / Clic / Espace :</strong> Sauter (et <strong>Double Saut</strong> en l'air !)</div>
+                    <div>• <strong>Glisser vers le bas / Flèche Bas :</strong> Se baisser sous les obstacles</div>
+                    <div>• <strong>Bonus :</strong> Sirop d'érable 🍁, Poutine 🍟, Feuilles dorées ✨</div>
+                </div>
+
+                <button id="start-btn" class="btn-primary-canada w-full py-3.5 px-5 rounded-2xl text-white font-black text-base tracking-wide cursor-pointer">
+                    Patiner dans Montréal !
+                </button>
+            </div>
+        </div>
+
+        <!-- Écran de fin de partie -->
+        <div id="gameover-overlay" class="fixed inset-0 z-20 hidden items-center justify-center p-4 bg-slate-950/55 backdrop-blur-[3px]">
+            <div class="glass-card w-full max-w-sm rounded-3xl p-6 text-center text-slate-900">
+                <div class="text-4xl mb-2">❄️🍁</div>
+                <h2 class="text-2xl font-black text-slate-900">Belle glissade !</h2>
+                <p id="gameover-subtitle" class="text-sm text-slate-600 mt-1 mb-4">Martinou a filé sur la glace.</p>
+
+                <div class="grid grid-cols-3 gap-2 bg-slate-100 rounded-2xl p-3 mb-5">
+                    <div>
+                        <div class="text-[11px] font-bold uppercase text-slate-500">Score</div>
+                        <div id="final-score" class="text-lg font-black text-slate-900">0</div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-bold uppercase text-slate-500">Record</div>
+                        <div id="final-best" class="text-lg font-black text-red-600">0</div>
+                    </div>
+                    <div>
+                        <div class="text-[11px] font-bold uppercase text-slate-500">Érables</div>
+                        <div id="final-syrup" class="text-lg font-black text-amber-600">0</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2.5">
+                    <button id="replay-btn" class="btn-primary-canada w-full py-3 px-4 rounded-2xl text-white font-extrabold text-sm cursor-pointer">
+                        Rejouer la course
+                    </button>
+                    <button id="change-hero-btn" class="w-full py-2.5 px-4 rounded-2xl bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold text-sm cursor-pointer">
+                        Changer de patineur / photo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            const canvas = document.getElementById('game-canvas');
+            const ctx = canvas.getContext('2d');
+
+            const startOverlay = document.getElementById('start-overlay');
+            const gameoverOverlay = document.getElementById('gameover-overlay');
+            const cardMartinou = document.getElementById('card-martinou');
+            const cardBibinou = document.getElementById('card-bibinou');
+            const previewMartinou = document.getElementById('preview-martinou');
+            const previewBibinou = document.getElementById('preview-bibinou');
+            const photoStatus = document.getElementById('photo-status');
+
+            let viewW = window.innerWidth;
+            let viewH = window.innerHeight;
+            let dpr = Math.min(window.devicePixelRatio || 1, 2);
+            let groundY = Math.round(viewH * 0.78);
+
+            const BEST_STORAGE_KEY = 'runner_hiver_canada_best_v1';
+
+            // État global du jeu (mode strictement 1 joueur : 'martinou' ou 'bibinou')
+            const state = {
+                phase: 'menu', // 'menu' | 'playing' | 'gameover'
+                selectedHero: 'martinou',
+                score: 0,
+                bestScore: Number(localStorage.getItem(BEST_STORAGE_KEY) || 0),
+                syrupCount: 0,
+                distance: 0,
+                speed: 310,
+                spawnTimer: 0.9,
+                bonusTimer: 0.65,
+                invulnTimer: 0,
+                scrollTrees: 0,
+                scrollCity: 0,
+                scrollStreetClimb: 0,
+                scrollStreet2D: 0,
+                scrollSnowGround: 0,
+                musicEnabled: true,
+                musicStep: 0,
+                musicTimer: 0,
+
+                runner: {
+                    x: 92,
+                    y: 0,
+                    vy: 0,
+                    width: 46,
+                    height: 62,
+                    jumpsUsed: 0,
+                    maxJumps: 2,
+                    isDucking: false,
+                    duckTimer: 0,
+                    runCycle: 0,
+                    expression: 'happy', // 'happy' | 'wow' | 'ouch'
+                    expressionTimer: 0
+                },
+
+                photos: {
+                    martinou: null, // HTMLImageElement
+                    bibinou: null   // HTMLImageElement
+                },
+                backgroundImage: null,
+                backgroundLoaded: false,
+
+                obstacles: [],
+                bonuses: [],
+                particles: [],
+                popups: [],
+                snowflakes: []
+            };
+
+            // Synthétiseur audio léger sans dépendance externe (sons + mélodie de Noël)
+            class GentleSoundEngine {
+                constructor() {
+                    this.ctx = null;
+                }
+                ensureContext() {
+                    if (!this.ctx) {
+                        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                        if (AudioCtx) {
+                            this.ctx = new AudioCtx();
+                        }
+                    }
+                    if (this.ctx && this.ctx.state === 'suspended') {
+                        this.ctx.resume().catch(() => {});
+                    }
+                }
+                jump(isDouble = false) {
+                    this.ensureContext();
+                    if (!this.ctx) return;
+                    try {
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        const startFreq = isDouble ? 360 : 250;
+                        const endFreq = isDouble ? 660 : 470;
+                        osc.frequency.setValueAtTime(startFreq, now);
+                        osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.14);
+                        gain.gain.setValueAtTime(0.09, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.16);
+                    } catch (err) {}
+                }
+                collect(isSpecial = false) {
+                    this.ensureContext();
+                    if (!this.ctx) return;
+                    try {
+                        const now = this.ctx.currentTime;
+                        const notes = isSpecial ? [523.25, 659.25, 783.99, 1046.5] : [587.33, 880];
+                        notes.forEach((freq, idx) => {
+                            const osc = this.ctx.createOscillator();
+                            const gain = this.ctx.createGain();
+                            osc.type = 'triangle';
+                            osc.frequency.setValueAtTime(freq, now + idx * 0.055);
+                            gain.gain.setValueAtTime(0.08, now + idx * 0.055);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.055 + 0.16);
+                            osc.connect(gain);
+                            gain.connect(this.ctx.destination);
+                            osc.start(now + idx * 0.055);
+                            osc.stop(now + idx * 0.055 + 0.17);
+                        });
+                    } catch (err) {}
+                }
+                tickChristmasMusic(dt, isPlaying) {
+                    if (!state.musicEnabled) return;
+                    this.ensureContext();
+                    if (!this.ctx) return;
+
+                    // Mélodie de Noël légère en boucle
+                    const melody = [
+                        { f: 659.25, d: 0.24 }, { f: 659.25, d: 0.24 }, { f: 659.25, d: 0.48 },
+                        { f: 659.25, d: 0.24 }, { f: 659.25, d: 0.24 }, { f: 659.25, d: 0.48 },
+                        { f: 659.25, d: 0.24 }, { f: 783.99, d: 0.24 }, { f: 523.25, d: 0.30 },
+                        { f: 587.33, d: 0.18 }, { f: 659.25, d: 0.65 },
+                        { f: 698.46, d: 0.24 }, { f: 698.46, d: 0.24 }, { f: 698.46, d: 0.30 },
+                        { f: 698.46, d: 0.18 }, { f: 698.46, d: 0.24 }, { f: 659.25, d: 0.24 },
+                        { f: 659.25, d: 0.24 }, { f: 659.25, d: 0.12 }, { f: 659.25, d: 0.12 },
+                        { f: 783.99, d: 0.24 }, { f: 783.99, d: 0.24 }, { f: 698.46, d: 0.24 },
+                        { f: 587.33, d: 0.24 }, { f: 523.25, d: 0.70 }
+                    ];
+
+                    const tempoScale = isPlaying ? 1.0 : 1.25;
+                    state.musicTimer -= dt * tempoScale;
+                    if (state.musicTimer > 0) return;
+
+                    const note = melody[state.musicStep % melody.length];
+                    state.musicStep = (state.musicStep + 1) % melody.length;
+                    state.musicTimer = note.d;
+
+                    if (this.ctx.state === 'suspended') return;
+                    try {
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const bell = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(note.f, now);
+
+                        bell.type = 'triangle';
+                        bell.frequency.setValueAtTime(note.f * 2, now);
+
+                        const peakGain = isPlaying ? 0.042 : 0.024;
+                        gain.gain.setValueAtTime(0.001, now);
+                        gain.gain.linearRampToValueAtTime(peakGain, now + 0.02);
+                        gain.gain.exponentialRampToValueAtTime(0.0008, now + note.d * 0.95);
+
+                        osc.connect(gain);
+                        bell.connect(gain);
+                        gain.connect(this.ctx.destination);
+
+                        osc.start(now);
+                        bell.start(now);
+                        osc.stop(now + note.d);
+                        bell.stop(now + note.d);
+                    } catch (err) {}
+                }
+                hit() {
+                    this.ensureContext();
+                    if (!this.ctx) return;
+                    try {
+                        const now = this.ctx.currentTime;
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(190, now);
+                        osc.frequency.exponentialRampToValueAtTime(75, now + 0.22);
+                        gain.gain.setValueAtTime(0.09, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    } catch (err) {}
+                }
+            }
+
+            const audio = new GentleSoundEngine();
+
+            function initSnow() {
+                state.snowflakes = [];
+                const count = Math.min(48, Math.max(22, Math.floor(viewW / 32)));
+                for (let i = 0; i < count; i++) {
+                    state.snowflakes.push({
+                        x: Math.random() * viewW,
+                        y: Math.random() * viewH,
+                        r: 1.4 + Math.random() * 2.2,
+                        speedY: 22 + Math.random() * 34,
+                        drift: (Math.random() - 0.5) * 18,
+                        alpha: 0.45 + Math.random() * 0.45
+                    });
+                }
+            }
+
+            function initBackgroundImage() {
+                const bgImg = new Image();
+                bgImg.onload = function () {
+                    state.backgroundImage = bgImg;
+                    state.backgroundLoaded = true;
+                };
+                bgImg.onerror = function () {
+                    state.backgroundLoaded = false;
+                };
+                bgImg.src = 'assets/backgrounds/background.png';
+            }
+
+            function resizeCanvas() {
+                viewW = window.innerWidth;
+                viewH = window.innerHeight;
+                dpr = Math.min(window.devicePixelRatio || 1, 2);
+                groundY = Math.round(viewH * 0.78);
+
+                canvas.width = Math.round(viewW * dpr);
+                canvas.height = Math.round(viewH * dpr);
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+                if (state.phase !== 'playing') {
+                    state.runner.y = groundY;
+                } else {
+                    state.runner.y = Math.min(state.runner.y, groundY);
+                }
+
+                initSnow();
+            }
+
+            function drawAvatarPortrait(targetCtx, heroKey, cx, cy, radius) {
+                const customImg = state.photos[heroKey];
+                targetCtx.save();
+                targetCtx.beginPath();
+                targetCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+                targetCtx.clip();
+
+                if (customImg && customImg.complete && customImg.naturalWidth > 0) {
+                    const size = radius * 2;
+                    const scale = Math.max(size / customImg.naturalWidth, size / customImg.naturalHeight);
+                    const drawW = customImg.naturalWidth * scale;
+                    const drawH = customImg.naturalHeight * scale;
+                    targetCtx.drawImage(customImg, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
+                } else {
+                    // Fond portrait stylisé selon Martinou ou Bibinou
+                    const bgGrad = targetCtx.createLinearGradient(cx, cy - radius, cx, cy + radius);
+                    if (heroKey === 'martinou') {
+                        bgGrad.addColorStop(0, '#dbeafe');
+                        bgGrad.addColorStop(1, '#93c5fd');
+                    } else {
+                        bgGrad.addColorStop(0, '#fee2e2');
+                        bgGrad.addColorStop(1, '#fca5a5');
+                    }
+                    targetCtx.fillStyle = bgGrad;
+                    targetCtx.fillRect(cx - radius, cy - radius, radius * 2, radius * 2);
+
+                    // Cou / pull
+                    targetCtx.fillStyle = heroKey === 'martinou' ? '#1d4ed8' : '#e11d48';
+                    targetCtx.beginPath();
+                    targetCtx.ellipse(cx, cy + radius * 0.72, radius * 0.62, radius * 0.36, 0, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                    // Visage
+                    targetCtx.fillStyle = '#fed7aa';
+                    targetCtx.beginPath();
+                    targetCtx.arc(cx, cy + radius * 0.04, radius * 0.44, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                    // Cheveux / couette
+                    targetCtx.fillStyle = heroKey === 'martinou' ? '#451a03' : '#78350f';
+                    if (heroKey === 'bibinou') {
+                        targetCtx.beginPath();
+                        targetCtx.arc(cx + radius * 0.44, cy - radius * 0.14, radius * 0.2, 0, Math.PI * 2);
+                        targetCtx.fill();
+                    }
+
+                    // Tuque d'hiver
+                    targetCtx.fillStyle = heroKey === 'martinou' ? '#2563eb' : '#dc2626';
+                    targetCtx.beginPath();
+                    targetCtx.arc(cx, cy - radius * 0.12, radius * 0.48, Math.PI, Math.PI * 2);
+                    targetCtx.fill();
+                    targetCtx.fillRect(cx - radius * 0.48, cy - radius * 0.18, radius * 0.96, radius * 0.16);
+
+                    // Pompon
+                    targetCtx.fillStyle = '#ffffff';
+                    targetCtx.beginPath();
+                    targetCtx.arc(cx, cy - radius * 0.66, radius * 0.15, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                    // Yeux & sourire
+                    targetCtx.fillStyle = '#1e293b';
+                    targetCtx.beginPath();
+                    targetCtx.arc(cx - radius * 0.15, cy + radius * 0.04, radius * 0.06, 0, Math.PI * 2);
+                    targetCtx.arc(cx + radius * 0.15, cy + radius * 0.04, radius * 0.06, 0, Math.PI * 2);
+                    targetCtx.fill();
+
+                    targetCtx.strokeStyle = '#7c2d12';
+                    targetCtx.lineWidth = Math.max(1.5, radius * 0.06);
+                    targetCtx.lineCap = 'round';
+                    targetCtx.beginPath();
+                    targetCtx.arc(cx, cy + radius * 0.16, radius * 0.15, 0.15 * Math.PI, 0.85 * Math.PI);
+                    targetCtx.stroke();
+                }
+
+                targetCtx.restore();
+
+                targetCtx.strokeStyle = '#ffffff';
+                targetCtx.lineWidth = Math.max(2, radius * 0.08);
+                targetCtx.beginPath();
+                targetCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+                targetCtx.stroke();
+            }
+
+            function renderPreviewAvatars() {
+                const pCtxM = previewMartinou.getContext('2d');
+                pCtxM.clearRect(0, 0, previewMartinou.width, previewMartinou.height);
+                drawAvatarPortrait(pCtxM, 'martinou', 42, 42, 36);
+
+                const pCtxB = previewBibinou.getContext('2d');
+                pCtxB.clearRect(0, 0, previewBibinou.width, previewBibinou.height);
+                drawAvatarPortrait(pCtxB, 'bibinou', 42, 42, 36);
+            }
+
+            function selectHero(heroKey) {
+                state.selectedHero = heroKey;
+                const isMartinou = heroKey === 'martinou';
+                cardMartinou.classList.toggle('selected', isMartinou);
+                cardMartinou.setAttribute('aria-pressed', String(isMartinou));
+                cardBibinou.classList.toggle('selected', !isMartinou);
+                cardBibinou.setAttribute('aria-pressed', String(!isMartinou));
+            }
+
+            function handlePhotoUpload(heroKey, file) {
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (evt) {
+                    const img = new Image();
+                    img.onload = function () {
+                        state.photos[heroKey] = img;
+                        renderPreviewAvatars();
+                        const label = heroKey === 'martinou' ? 'Martinou' : 'Bibinou';
+                        photoStatus.textContent = `✅ Photo ajoutée pour ${label} !`;
+                    };
+                    img.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+
+            function addPopup(x, y, text, color) {
+                state.popups.push({
+                    x,
+                    y,
+                    text,
+                    color: color || '#fbbf24',
+                    alpha: 1,
+                    vy: -42
+                });
+            }
+
+            function addBurst(x, y, color, count) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const spd = 45 + Math.random() * 125;
+                    state.particles.push({
+                        x,
+                        y,
+                        vx: Math.cos(angle) * spd,
+                        vy: Math.sin(angle) * spd - 35,
+                        size: 2.5 + Math.random() * 3.5,
+                        color,
+                        life: 0.45 + Math.random() * 0.3,
+                        maxLife: 0.75
+                    });
+                }
+            }
+
+            function startGame() {
+                audio.ensureContext();
+                state.phase = 'playing';
+                state.score = 0;
+                state.syrupCount = 0;
+                state.distance = 0;
+                state.speed = 315;
+                state.spawnTimer = 0.85;
+                state.bonusTimer = 0.55;
+                state.invulnTimer = 0;
+                state.obstacles = [];
+                state.bonuses = [];
+                state.particles = [];
+                state.popups = [];
+
+                state.runner.y = groundY;
+                state.runner.vy = 0;
+                state.runner.jumpsUsed = 0;
+                state.runner.isDucking = false;
+                state.runner.duckTimer = 0;
+                state.runner.expression = 'happy';
+                state.runner.expressionTimer = 0;
+
+                startOverlay.classList.add('hidden');
+                gameoverOverlay.classList.add('hidden');
+                gameoverOverlay.classList.remove('flex');
+            }
+
+            function triggerJump() {
+                if (state.phase !== 'playing') return;
+                const r = state.runner;
+                if (r.jumpsUsed < r.maxJumps) {
+                    const isDouble = r.jumpsUsed > 0;
+                    r.vy = isDouble ? -520 : -580;
+                    r.jumpsUsed += 1;
+                    r.isDucking = false;
+                    r.duckTimer = 0;
+                    audio.jump(isDouble);
+                    addBurst(r.x, r.y - 8, isDouble ? '#fde047' : '#e0f2fe', isDouble ? 10 : 7);
+                }
+            }
+
+            function triggerDuck(active) {
+                if (state.phase !== 'playing') return;
+                const r = state.runner;
+                if (active) {
+                    r.isDucking = true;
+                    r.duckTimer = 0.55;
+                    if (r.y < groundY) {
+                        r.vy = Math.max(r.vy + 260, 240);
+                    }
+                } else {
+                    r.isDucking = false;
+                }
+            }
+
+            function spawnObstacle() {
+                const roll = Math.random();
+                if (roll < 0.36) {
+                    // Cône orange d'hiver
+                    state.obstacles.push({
+                        kind: 'cone',
+                        x: viewW + 40,
+                        y: groundY,
+                        w: 32,
+                        h: 38,
+                        passed: false
+                    });
+                } else if (roll < 0.72) {
+                    // Banc de neige / bloc glacé
+                    state.obstacles.push({
+                        kind: 'snowbank',
+                        x: viewW + 50,
+                        y: groundY,
+                        w: 44,
+                        h: 34,
+                        passed: false
+                    });
+                } else {
+                    // Branche / panneau aérien (peut être sauté ou esquivé en se baissant)
+                    state.obstacles.push({
+                        kind: 'branch',
+                        x: viewW + 50,
+                        y: groundY - 46,
+                        w: 52,
+                        h: 22,
+                        passed: false
+                    });
+                }
+            }
+
+            function spawnBonus() {
+                const kinds = ['maple', 'poutine', 'gold'];
+                const kind = kinds[Math.floor(Math.random() * kinds.length)];
+                const airHeight = Math.random() < 0.55 ? 24 : 78;
+                state.bonuses.push({
+                    kind,
+                    x: viewW + 35,
+                    y: groundY - airHeight,
+                    r: 16,
+                    phase: Math.random() * Math.PI * 2
+                });
+            }
+
+            function finishGame() {
+                if (state.phase === 'gameover') return;
+                state.phase = 'gameover';
+                state.runner.expression = 'ouch';
+                audio.hit();
+
+                const finalScore = Math.floor(state.score);
+                if (finalScore > state.bestScore) {
+                    state.bestScore = finalScore;
+                    localStorage.setItem(BEST_STORAGE_KEY, String(state.bestScore));
+                }
+
+                const heroName = state.selectedHero === 'martinou' ? 'Martinou' : 'Bibinou';
+                document.getElementById('gameover-subtitle').textContent = `${heroName} a terminé sa glissade hivernale !`;
+                document.getElementById('final-score').textContent = String(finalScore);
+                document.getElementById('final-best').textContent = String(state.bestScore);
+                document.getElementById('final-syrup').textContent = String(state.syrupCount);
+
+                gameoverOverlay.classList.remove('hidden');
+                gameoverOverlay.classList.add('flex');
+            }
+
+            function update(dt) {
+                audio.tickChristmasMusic(dt, state.phase === 'playing');
+
+                // Mise à jour de la neige légère en continu
+                for (let i = 0; i < state.snowflakes.length; i++) {
+                    const f = state.snowflakes[i];
+                    f.y += f.speedY * dt;
+                    f.x += (f.drift - state.speed * 0.08) * dt;
+                    if (f.y > viewH + 8) {
+                        f.y = -8;
+                        f.x = Math.random() * viewW;
+                    }
+                    if (f.x < -10) f.x = viewW + 10;
+                    if (f.x > viewW + 10) f.x = -10;
+                }
+
+                if (state.phase !== 'playing') {
+                    state.scrollStreet2D += 48 * dt;
+                    state.scrollSnowGround += 65 * dt;
+                    state.runner.runCycle += dt * 4;
+                    return;
+                }
+
+                // Augmentation progressive de la vitesse au fil du temps
+                state.speed = Math.min(720, state.speed + dt * 13.5);
+                state.distance += state.speed * dt * 0.04;
+                state.score += dt * (18 + state.speed * 0.05);
+
+                state.scrollStreet2D += state.speed * 0.32 * dt;
+                state.scrollSnowGround += state.speed * dt;
+                state.runner.runCycle += dt * (9 + state.speed * 0.015);
+
+                if (state.invulnTimer > 0) {
+                    state.invulnTimer = Math.max(0, state.invulnTimer - dt);
+                }
+                if (state.runner.expressionTimer > 0) {
+                    state.runner.expressionTimer = Math.max(0, state.runner.expressionTimer - dt);
+                    if (state.runner.expressionTimer === 0) {
+                        state.runner.expression = 'happy';
+                    }
+                }
+                if (state.runner.duckTimer > 0) {
+                    state.runner.duckTimer = Math.max(0, state.runner.duckTimer - dt);
+                    if (state.runner.duckTimer === 0) {
+                        state.runner.isDucking = false;
+                    }
+                }
+
+                // Physique du patineur
+                const r = state.runner;
+                const gravity = 1520;
+                r.vy += gravity * dt;
+                r.y += r.vy * dt;
+
+                if (r.y >= groundY) {
+                    r.y = groundY;
+                    r.vy = 0;
+                    r.jumpsUsed = 0;
+                }
+
+                // Apparition des obstacles
+                state.spawnTimer -= dt;
+                if (state.spawnTimer <= 0) {
+                    spawnObstacle();
+                    const baseInterval = Math.max(0.72, 1.48 - (state.speed - 315) * 0.0014);
+                    state.spawnTimer = baseInterval + Math.random() * 0.45;
+                }
+
+                // Apparition des bonus
+                state.bonusTimer -= dt;
+                if (state.bonusTimer <= 0) {
+                    spawnBonus();
+                    state.bonusTimer = 0.65 + Math.random() * 0.55;
+                }
+
+                // Hitbox du patineur
+                const bodyH = r.isDucking ? 36 : 54;
+                const hitLeft = r.x - 14;
+                const hitRight = r.x + 14;
+                const hitTop = r.y - bodyH;
+                const hitBottom = r.y - 4;
+
+                // Déplacement et collision des obstacles
+                for (let i = state.obstacles.length - 1; i >= 0; i--) {
+                    const obs = state.obstacles[i];
+                    obs.x -= state.speed * dt;
+
+                    const obsLeft = obs.x - obs.w * 0.42;
+                    const obsRight = obs.x + obs.w * 0.42;
+                    const obsTop = obs.kind === 'branch' ? obs.y - obs.h * 0.5 : obs.y - obs.h;
+                    const obsBottom = obs.kind === 'branch' ? obs.y + obs.h * 0.5 : obs.y;
+
+                    const overlaps =
+                        hitRight > obsLeft &&
+                        hitLeft < obsRight &&
+                        hitBottom > obsTop &&
+                        hitTop < obsBottom;
+
+                    if (overlaps && state.invulnTimer <= 0) {
+                        addBurst(r.x, r.y - 24, '#ef4444', 16);
+                        finishGame();
+                        return;
+                    }
+
+                    if (!obs.passed && obs.x + obs.w * 0.5 < r.x) {
+                        obs.passed = true;
+                        state.score += 15;
+                    }
+
+                    if (obs.x < -90) {
+                        state.obstacles.splice(i, 1);
+                    }
+                }
+
+                // Déplacement et collecte des bonus
+                for (let i = state.bonuses.length - 1; i >= 0; i--) {
+                    const b = state.bonuses[i];
+                    b.x -= state.speed * dt;
+                    b.phase += dt * 4.5;
+                    const floatY = b.y + Math.sin(b.phase) * 5;
+
+                    const dx = r.x - b.x;
+                    const dy = (r.y - bodyH * 0.5) - floatY;
+                    const dist = Math.hypot(dx, dy);
+
+                    if (dist < b.r + 22) {
+                        if (b.kind === 'maple') {
+                            state.syrupCount += 1;
+                            state.score += 50;
+                            r.expression = 'wow';
+                            r.expressionTimer = 0.6;
+                            audio.collect(false);
+                            addPopup(b.x, floatY - 12, '+50 🍁', '#f59e0b');
+                            addBurst(b.x, floatY, '#fbbf24', 9);
+                        } else if (b.kind === 'poutine') {
+                            state.score += 80;
+                            state.invulnTimer = Math.max(state.invulnTimer, 1.4);
+                            r.expression = 'wow';
+                            r.expressionTimer = 0.75;
+                            audio.collect(true);
+                            addPopup(b.x, floatY - 12, '+80 🍟 Bouclier', '#38bdf8');
+                            addBurst(b.x, floatY, '#fde047', 12);
+                        } else {
+                            state.score += 100;
+                            r.expression = 'wow';
+                            r.expressionTimer = 0.75;
+                            audio.collect(true);
+                            addPopup(b.x, floatY - 12, '+100 ✨', '#fde047');
+                            addBurst(b.x, floatY, '#fef08a', 12);
+                        }
+                        state.bonuses.splice(i, 1);
+                        continue;
+                    }
+
+                    if (b.x < -70) {
+                        state.bonuses.splice(i, 1);
+                    }
+                }
+
+                // Particules
+                for (let i = state.particles.length - 1; i >= 0; i--) {
+                    const p = state.particles[i];
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.vy += 260 * dt;
+                    p.life -= dt;
+                    if (p.life <= 0) {
+                        state.particles.splice(i, 1);
+                    }
+                }
+
+                // Popups de score
+                for (let i = state.popups.length - 1; i >= 0; i--) {
+                    const pop = state.popups[i];
+                    pop.y += pop.vy * dt;
+                    pop.alpha -= dt * 1.15;
+                    if (pop.alpha <= 0) {
+                        state.popups.splice(i, 1);
+                    }
+                }
+            }
+
+            // Décor Montréal enneigé : entre la zone du pont / grande roue et Chinatown
+            function drawMontrealStreet() {
+                const baseTop = Math.max(46, groundY - 245);
+                const streetBottom = groundY + 8;
+                const bandH = Math.max(110, streetBottom - baseTop);
+
+                ctx.save();
+                ctx.beginPath();
+                ctx.rect(0, baseTop, viewW, bandH);
+                ctx.clip();
+
+                if (state.backgroundLoaded && state.backgroundImage && state.backgroundImage.width > 0) {
+                    const img = state.backgroundImage;
+                    const scale = Math.max(bandH / img.height, 1);
+                    const drawW = Math.max(120, Math.round(img.width * scale));
+                    const drawH = bandH;
+                    const offsetX = -(state.scrollStreet2D % drawW);
+
+                    for (let x = offsetX - drawW; x < viewW + drawW; x += drawW) {
+                        ctx.drawImage(img, x, baseTop, drawW, drawH);
+                    }
+
+                    // Légère route verglacée en bas de la bande pour l'effet patinage
+                    const roadTop = baseTop + bandH * 0.76;
+                    const iceGrad = ctx.createLinearGradient(0, roadTop, 0, streetBottom);
+                    iceGrad.addColorStop(0, 'rgba(168, 194, 216, 0.35)');
+                    iceGrad.addColorStop(0.5, 'rgba(126, 159, 185, 0.52)');
+                    iceGrad.addColorStop(1, 'rgba(220, 232, 242, 0.68)');
+                    ctx.fillStyle = iceGrad;
+                    ctx.fillRect(0, roadTop, viewW, streetBottom - roadTop);
+
+                    ctx.restore();
+                    return;
+                }
+
+                // Ciel hivernal pâle et lumineux de Montréal
+                const skyGrad = ctx.createLinearGradient(0, baseTop, 0, streetBottom);
+                skyGrad.addColorStop(0, '#c7d8ea');
+                skyGrad.addColorStop(0.52, '#e3edf5');
+                skyGrad.addColorStop(0.76, '#b7cadb');
+                skyGrad.addColorStop(1, '#dce7f0');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, baseTop, viewW, bandH);
+
+                const offset = -(state.scrollStreet2D % 520);
+                for (let sx = offset - 520; sx < viewW + 520; sx += 520) {
+                    // Grande roue à gauche
+                    const wheelX = sx + 92;
+                    const wheelY = baseTop + bandH * 0.34;
+                    const wheelR = Math.min(48, bandH * 0.22);
+                    ctx.strokeStyle = 'rgba(148, 163, 184, 0.75)';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(wheelX, wheelY, wheelR, 0, Math.PI * 2);
+                    ctx.stroke();
+                    for (let a = 0; a < 8; a++) {
+                        const ang = (a * Math.PI) / 4;
+                        ctx.beginPath();
+                        ctx.moveTo(wheelX, wheelY);
+                        ctx.lineTo(wheelX + Math.cos(ang) * wheelR, wheelY + Math.sin(ang) * wheelR);
+                        ctx.stroke();
+                    }
+
+                    // Pont en treillis vert-gris au centre-gauche
+                    ctx.strokeStyle = 'rgba(84, 118, 116, 0.72)';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(sx + 135, baseTop + bandH * 0.45);
+                    ctx.lineTo(sx + 255, baseTop + bandH * 0.28);
+                    ctx.lineTo(sx + 345, baseTop + bandH * 0.48);
+                    ctx.stroke();
+
+                    // Bâtiments enneigés
+                    ctx.fillStyle = '#cbd5e1';
+                    ctx.fillRect(sx + 185, baseTop + bandH * 0.43, 86, bandH * 0.26);
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.fillRect(sx + 282, baseTop + bandH * 0.46, 74, bandH * 0.23);
+
+                    // Arche style Chinatown à droite
+                    const archX = sx + 410;
+                    const archY = baseTop + bandH * 0.47;
+                    ctx.fillStyle = '#b91c1c';
+                    ctx.fillRect(archX - 24, archY, 6, bandH * 0.22);
+                    ctx.fillRect(archX + 18, archY, 6, bandH * 0.22);
+                    ctx.fillStyle = '#d97706';
+                    ctx.fillRect(archX - 30, archY - 6, 60, 7);
+                }
+
+                // Route verglacée
+                const roadTop = baseTop + bandH * 0.74;
+                const iceGrad = ctx.createLinearGradient(0, roadTop, 0, streetBottom);
+                iceGrad.addColorStop(0, '#9fb6ca');
+                iceGrad.addColorStop(0.55, '#7fa0bc');
+                iceGrad.addColorStop(1, '#dce7f0');
+                ctx.fillStyle = iceGrad;
+                ctx.fillRect(0, roadTop, viewW, streetBottom - roadTop);
+
+                ctx.restore();
+            }
+
+            function drawIceRoad() {
+                const roadTop = groundY - 4;
+                const roadH = Math.max(36, viewH - roadTop);
+                const grad = ctx.createLinearGradient(0, roadTop, 0, viewH);
+                grad.addColorStop(0, '#e0f2fe');
+                grad.addColorStop(0.28, '#bae6fd');
+                grad.addColorStop(1, '#7dd3fc');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, roadTop, viewW, roadH);
+
+                // Reflets de glace défilants
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.72)';
+                ctx.lineWidth = 2;
+                ctx.lineCap = 'round';
+                const spacing = 96;
+                const offset = -(state.scrollSnowGround % spacing);
+                for (let x = offset; x < viewW + spacing; x += spacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, groundY + 11);
+                    ctx.lineTo(x + 34, groundY + 11);
+                    ctx.stroke();
+                }
+            }
+
+            function drawRunner() {
+                const r = state.runner;
+                if (state.invulnTimer > 0 && Math.floor(state.invulnTimer * 16) % 2 === 0) {
+                    return;
+                }
+
+                const isBibinou = state.selectedHero === 'bibinou';
+                const stride = Math.sin(r.runCycle) * (r.y >= groundY - 1 ? 8 : 3);
+                const crouchOffset = r.isDucking ? 16 : 0;
+                const bodyTop = r.y - 44 + crouchOffset;
+
+                ctx.save();
+
+                // Ombre sur la glace
+                const airFactor = Math.max(0.35, 1 - (groundY - r.y) / 180);
+                ctx.fillStyle = `rgba(15, 23, 42, ${0.22 * airFactor})`;
+                ctx.beginPath();
+                ctx.ellipse(r.x, groundY + 4, 20 * airFactor, 5 * airFactor, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Patins et jambes
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(r.x - 5, r.y - 18 + crouchOffset * 0.5);
+                ctx.lineTo(r.x - 5 + stride, r.y - 4);
+                ctx.moveTo(r.x + 5, r.y - 18 + crouchOffset * 0.5);
+                ctx.lineTo(r.x + 5 - stride, r.y - 4);
+                ctx.stroke();
+
+                // Lames de patin
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(r.x - 12 + stride, r.y);
+                ctx.lineTo(r.x + 3 + stride, r.y);
+                ctx.moveTo(r.x - 2 - stride, r.y);
+                ctx.lineTo(r.x + 13 - stride, r.y);
+                ctx.stroke();
+
+                // Manteau / pull
+                ctx.fillStyle = isBibinou ? '#e11d48' : '#2563eb';
+                ctx.beginPath();
+                ctx.roundRect(r.x - 13, bodyTop, 26, r.isDucking ? 20 : 28, 9);
+                ctx.fill();
+
+                // Écharpe d'hiver
+                ctx.fillStyle = isBibinou ? '#fef08a' : '#f97316';
+                ctx.fillRect(r.x - 11, bodyTop - 2, 22, 6);
+
+                // Tête personnalisée (photo ou avatar)
+                const headY = bodyTop - 13;
+                drawAvatarPortrait(ctx, state.selectedHero, r.x + 1, headY, 15);
+
+                // Bouclier visuel si bonus poutine actif
+                if (state.invulnTimer > 0) {
+                    ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.arc(r.x, r.y - 24, 30, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+
+            function drawObstacles() {
+                for (let i = 0; i < state.obstacles.length; i++) {
+                    const obs = state.obstacles[i];
+                    ctx.save();
+                    if (obs.kind === 'cone') {
+                        ctx.fillStyle = '#ea580c';
+                        ctx.beginPath();
+                        ctx.moveTo(obs.x, obs.y - obs.h);
+                        ctx.lineTo(obs.x - obs.w * 0.45, obs.y);
+                        ctx.lineTo(obs.x + obs.w * 0.45, obs.y);
+                        ctx.closePath();
+                        ctx.fill();
+
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(obs.x - obs.w * 0.24, obs.y - obs.h * 0.56, obs.w * 0.48, 6);
+                    } else if (obs.kind === 'snowbank') {
+                        ctx.fillStyle = '#f8fafc';
+                        ctx.strokeStyle = '#94a3b8';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.roundRect(obs.x - obs.w * 0.5, obs.y - obs.h, obs.w, obs.h, 12);
+                        ctx.fill();
+                        ctx.stroke();
+                    } else {
+                        // Obstacle aérien (à sauter ou passer dessous)
+                        ctx.fillStyle = '#78350f';
+                        ctx.beginPath();
+                        ctx.roundRect(obs.x - obs.w * 0.5, obs.y - obs.h * 0.5, obs.w, obs.h, 8);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                }
+            }
+
+            function drawBonuses() {
+                ctx.save();
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                for (let i = 0; i < state.bonuses.length; i++) {
+                    const b = state.bonuses[i];
+                    const floatY = b.y + Math.sin(b.phase) * 5;
+
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.88)';
+                    ctx.beginPath();
+                    ctx.arc(b.x, floatY, b.r, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.font = '18px sans-serif';
+                    const glyph = b.kind === 'maple' ? '🍁' : b.kind === 'poutine' ? '🍟' : '✨';
+                    ctx.fillText(glyph, b.x, floatY + 1);
+                }
+                ctx.restore();
+            }
+
+            function drawSnowAndEffects() {
+                // Neige légère
+                ctx.save();
+                for (let i = 0; i < state.snowflakes.length; i++) {
+                    const f = state.snowflakes[i];
+                    ctx.fillStyle = `rgba(255, 255, 255, ${f.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // Particules
+                for (let i = 0; i < state.particles.length; i++) {
+                    const p = state.particles[i];
+                    ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+                    ctx.fillStyle = p.color;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.globalAlpha = 1;
+
+                // Popups de score
+                ctx.font = '800 14px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                for (let i = 0; i < state.popups.length; i++) {
+                    const pop = state.popups[i];
+                    ctx.globalAlpha = Math.max(0, pop.alpha);
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillText(pop.text, pop.x + 1, pop.y + 1);
+                    ctx.fillStyle = pop.color;
+                    ctx.fillText(pop.text, pop.x, pop.y);
+                }
+                ctx.globalAlpha = 1;
+                ctx.restore();
+            }
+
+            function drawHud() {
+                if (state.phase !== 'playing') return;
+
+                const heroLabel = state.selectedHero === 'martinou' ? 'Martinou' : 'Bibinou';
+                ctx.save();
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.72)';
+                ctx.beginPath();
+                ctx.roundRect(14, 14, viewW - 28, 42, 14);
+                ctx.fill();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '800 13px Inter, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${heroLabel} • Score ${Math.floor(state.score)}`, 26, 35);
+
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#fde047';
+                ctx.fillText(`🍁 ${state.syrupCount}   🏆 ${state.bestScore}`, viewW - 26, 35);
+                ctx.restore();
+            }
+
+            function render() {
+                ctx.clearRect(0, 0, viewW, viewH);
+
+                // Fond supérieur doux
+                const topSky = ctx.createLinearGradient(0, 0, 0, viewH);
+                topSky.addColorStop(0, '#9fb9d4');
+                topSky.addColorStop(0.55, '#dce8f2');
+                topSky.addColorStop(1, '#e0f2fe');
+                ctx.fillStyle = topSky;
+                ctx.fillRect(0, 0, viewW, viewH);
+
+                drawMontrealStreet();
+                drawIceRoad();
+                drawBonuses();
+                drawObstacles();
+                drawRunner();
+                drawSnowAndEffects();
+                drawHud();
+            }
+
+            let lastTime = performance.now();
+            function loop(now) {
+                const dt = Math.min(0.05, Math.max(0.001, (now - lastTime) / 1000));
+                lastTime = now;
+                update(dt);
+                render();
+                requestAnimationFrame(loop);
+            }
+
+            // Événements UI & contrôles
+            cardMartinou.addEventListener('click', () => selectHero('martinou'));
+            cardBibinou.addEventListener('click', () => selectHero('bibinou'));
+
+            document.getElementById('file-martinou').addEventListener('change', (e) => {
+                handlePhotoUpload('martinou', e.target.files && e.target.files[0]);
+            });
+            document.getElementById('file-bibinou').addEventListener('change', (e) => {
+                handlePhotoUpload('bibinou', e.target.files && e.target.files[0]);
+            });
+
+            const musicBtn = document.getElementById('music-toggle-btn');
+            musicBtn.addEventListener('click', () => {
+                state.musicEnabled = !state.musicEnabled;
+                if (state.musicEnabled) {
+                    audio.ensureContext();
+                    musicBtn.textContent = '🎄 Musique : ON';
+                    musicBtn.className = 'btn-photo !w-auto !py-1.5 !px-2.5 cursor-pointer rounded-xl bg-emerald-600 text-white font-bold hover:bg-emerald-700';
+                } else {
+                    musicBtn.textContent = '🔇 Musique : OFF';
+                    musicBtn.className = 'btn-photo !w-auto !py-1.5 !px-2.5 cursor-pointer rounded-xl bg-slate-600 text-white font-bold hover:bg-slate-700';
+                }
+            });
+
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('replay-btn').addEventListener('click', startGame);
+            document.getElementById('change-hero-btn').addEventListener('click', () => {
+                state.phase = 'menu';
+                state.runner.y = groundY;
+                gameoverOverlay.classList.add('hidden');
+                gameoverOverlay.classList.remove('flex');
+                startOverlay.classList.remove('hidden');
+            });
+
+            let pointerStartY = null;
+            canvas.addEventListener('pointerdown', (e) => {
+                if (state.phase !== 'playing') return;
+                pointerStartY = e.clientY;
+                triggerJump();
+            });
+            canvas.addEventListener('pointermove', (e) => {
+                if (state.phase !== 'playing' || pointerStartY === null) return;
+                if (e.clientY - pointerStartY > 28) {
+                    triggerDuck(true);
+                    pointerStartY = e.clientY;
+                }
+            });
+            canvas.addEventListener('pointerup', () => {
+                pointerStartY = null;
+            });
+
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+                    if (state.phase === 'playing') {
+                        e.preventDefault();
+                        triggerJump();
+                    }
+                } else if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                    if (state.phase === 'playing') {
+                        e.preventDefault();
+                        triggerDuck(true);
+                    }
+                }
+            });
+
+            window.addEventListener('keyup', (e) => {
+                if (e.code === 'ArrowDown' || e.code === 'KeyS') {
+                    triggerDuck(false);
+                }
+            });
+
+            window.addEventListener('resize', resizeCanvas);
+
+            // Initialisation
+            initBackgroundImage();
+            resizeCanvas();
+            renderPreviewAvatars();
+            requestAnimationFrame(loop);
+        })();
+    </script>
+</body>
+</html>
