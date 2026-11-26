@@ -41,24 +41,24 @@
 
         .btn-jump {
             background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
-            box-shadow: 0 6px 0 #7f1d1d, 0 12px 20px rgba(127, 29, 29, 0.35);
-            border: 3px solid #fecaca;
+            box-shadow: 0 6px 0 #7f1d1d, 0 12px 24px rgba(15, 23, 42, 0.55);
+            border: 3px solid #ffffff;
         }
 
         .btn-jump:active,
         .btn-jump.is-pressed {
-            box-shadow: 0 1px 0 #7f1d1d, 0 4px 10px rgba(127, 29, 29, 0.35);
+            box-shadow: 0 1px 0 #7f1d1d, 0 4px 10px rgba(15, 23, 42, 0.45);
         }
 
         .btn-lane {
             background: linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
-            box-shadow: 0 6px 0 #0c4a6e, 0 12px 20px rgba(12, 74, 110, 0.35);
-            border: 3px solid #bae6fd;
+            box-shadow: 0 6px 0 #0c4a6e, 0 12px 24px rgba(15, 23, 42, 0.55);
+            border: 3px solid #ffffff;
         }
 
         .btn-lane:active,
         .btn-lane.is-pressed {
-            box-shadow: 0 1px 0 #0c4a6e, 0 4px 10px rgba(12, 74, 110, 0.35);
+            box-shadow: 0 1px 0 #0c4a6e, 0 4px 10px rgba(15, 23, 42, 0.45);
         }
 
         #runnerGifLayer {
@@ -134,34 +134,32 @@
             </div>
         </div>
 
-        <!-- Boutons tactiles et indicateur -->
-        <div id="mobileControls" class="hidden absolute bottom-4 sm:bottom-6 left-0 right-0 px-4 sm:px-8 flex justify-between items-end pointer-events-none z-20">
-            <div class="hidden md:flex items-center gap-2 bg-slate-900/65 backdrop-blur-md text-white/90 text-xs font-semibold px-4 py-2 rounded-full border border-white/15 mb-2">
+        <!-- Boutons tactiles : Haut/Bas en bas à gauche, Sauter en bas à droite -->
+        <div id="mobileControls" class="hidden fixed bottom-5 sm:bottom-6 left-0 right-0 px-4 sm:px-8 flex justify-between items-end pointer-events-none z-30">
+            <div class="flex flex-col gap-2.5 pointer-events-auto">
+                <button id="btnLaneUpMobile" type="button" aria-label="Monter de file"
+                    class="mobile-action-btn btn-lane w-16 h-12 sm:w-20 sm:h-12 rounded-2xl text-white flex items-center justify-center font-game text-lg sm:text-xl font-bold select-none">
+                    ⬆️
+                </button>
+                <button id="btnLaneDownMobile" type="button" aria-label="Descendre de file"
+                    class="mobile-action-btn btn-lane w-16 h-12 sm:w-20 sm:h-12 rounded-2xl text-white flex items-center justify-center font-game text-lg sm:text-xl font-bold select-none">
+                    ⬇️
+                </button>
+            </div>
+
+            <div class="hidden md:flex items-center gap-2 bg-slate-900/75 backdrop-blur-md text-white/95 text-xs font-semibold px-4 py-2 rounded-full border border-white/25 mb-2">
                 <span>Haut / Bas : changer de file • Espace / Sauter : sauter</span>
             </div>
 
-            <div class="w-full md:w-auto md:ml-auto flex items-end justify-between md:justify-end gap-2.5 sm:gap-3">
-                <div class="flex flex-col gap-2 pointer-events-auto">
-                    <button id="btnLaneUpMobile" type="button" aria-label="Monter de file"
-                        class="mobile-action-btn btn-lane w-16 h-12 sm:w-20 sm:h-12 rounded-2xl text-white flex items-center justify-center font-game text-base sm:text-lg font-bold select-none">
-                        ⬆️
-                    </button>
-                    <button id="btnLaneDownMobile" type="button" aria-label="Descendre de file"
-                        class="mobile-action-btn btn-lane w-16 h-12 sm:w-20 sm:h-12 rounded-2xl text-white flex items-center justify-center font-game text-base sm:text-lg font-bold select-none">
-                        ⬇️
-                    </button>
-                </div>
-
-                <button id="btnJumpMobile" type="button" aria-label="Sauter"
-                    class="mobile-action-btn btn-jump w-24 h-24 sm:w-32 sm:h-24 rounded-3xl text-white flex flex-col items-center justify-center gap-1 select-none pointer-events-auto">
-                    <span class="text-2xl sm:text-3xl leading-none">⛸️⬆️</span>
-                    <span class="font-game text-sm sm:text-base font-bold tracking-wide uppercase">Sauter</span>
-                </button>
-            </div>
+            <button id="btnJumpMobile" type="button" aria-label="Sauter"
+                class="mobile-action-btn btn-jump w-24 h-24 sm:w-32 sm:h-24 rounded-3xl text-white flex flex-col items-center justify-center gap-1 select-none pointer-events-auto">
+                <span class="text-2xl sm:text-3xl leading-none">⛸️⬆️</span>
+                <span class="font-game text-sm sm:text-base font-bold tracking-wide uppercase">Sauter</span>
+            </button>
         </div>
 
         <!-- Écran d'accueil -->
-        <div id="startScreen" class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm flex items-center justify-center p-4 z-30">
+        <div id="startScreen" class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm flex items-center justify-center p-4 z-40">
             <div class="bg-white/95 backdrop-blur-md w-full max-w-lg rounded-3xl p-5 sm:p-7 shadow-2xl border-4 border-sky-200 text-center max-h-[95vh] overflow-y-auto">
                 <div class="inline-flex items-center gap-2 bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full mb-2">
                     <span>🇨🇦</span>
@@ -236,7 +234,7 @@
         </div>
 
         <!-- Écran Game Over -->
-        <div id="gameOverScreen" class="hidden absolute inset-0 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 z-30">
+        <div id="gameOverScreen" class="hidden absolute inset-0 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 z-40">
             <div class="bg-white/95 backdrop-blur-md w-full max-w-sm rounded-3xl p-6 shadow-2xl border-4 border-red-200 text-center">
                 <div class="w-28 h-28 mx-auto mb-2 rounded-2xl bg-sky-100 border-2 border-sky-200 shadow-inner overflow-hidden flex items-center justify-center">
                     <img id="gameOverGifImg" src="" alt="Fin de partie" class="w-full h-full object-contain">
