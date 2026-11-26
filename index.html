@@ -2,14 +2,18 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Le Runner Hivernal - Martinou & Bibinou</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
-        body {
+        html, body {
+            height: 100dvh;
+            width: 100vw;
+            margin: 0;
+            padding: 0;
             font-family: 'Inter', sans-serif;
             touch-action: manipulation;
             user-select: none;
@@ -28,9 +32,11 @@
             height: 100%;
         }
 
+        /* Styles des boutons tactiles ergonomiques pour la version verticale */
         .mobile-action-btn {
             transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.1s ease;
             -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
 
         .mobile-action-btn:active,
@@ -59,6 +65,10 @@
         .btn-lane:active,
         .btn-lane.is-pressed {
             box-shadow: 0 1px 0 #0c4a6e, 0 4px 10px rgba(12, 74, 110, 0.35);
+        }
+
+        .hero-thumb-frame {
+            box-shadow: inset 0 2px 6px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(15, 23, 42, 0.08);
         }
 
         #runnerGifLayer {
@@ -102,31 +112,33 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen relative flex flex-col justify-between overflow-hidden">
+<body class="h-dvh w-screen relative flex flex-col justify-between overflow-hidden">
 
+    <!-- Conteneur principal du jeu -->
     <div id="gameContainer" class="relative w-full h-full flex-1 overflow-hidden">
         <canvas id="gameCanvas"></canvas>
 
+        <!-- Calques du patineur animé -->
         <img id="runnerGifLayer" src="" alt="Patineur animé" class="hidden" />
         <img id="runnerFaceOverlay" src="" alt="Visage patineur" class="hidden" />
         <canvas id="runnerCanvasLayer" class="hidden"></canvas>
 
         <!-- HUD Supérieur -->
-        <div id="hud" class="hidden absolute top-0 left-0 right-0 p-3 sm:p-4 flex justify-between items-start pointer-events-none z-10">
-            <div class="flex flex-col gap-1.5 bg-slate-900/80 backdrop-blur-md text-white px-4 py-2.5 rounded-2xl border border-white/20 shadow-lg">
-                <div class="flex items-center gap-2">
+        <div id="hud" class="hidden absolute top-0 left-0 right-0 p-3 sm:p-4 flex justify-between items-start gap-2 pointer-events-none z-10">
+            <div class="flex flex-col gap-1 bg-slate-900/80 backdrop-blur-md text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl border border-white/20 shadow-lg max-w-[75%]">
+                <div class="flex items-center gap-2 flex-wrap">
                     <span id="hudHeroBadge" class="bg-red-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">Martinou</span>
                     <span class="text-xs uppercase tracking-wider text-sky-300 font-bold">Score</span>
-                    <span id="scoreDisplay" class="font-game text-xl sm:text-2xl font-bold text-white">0</span>
+                    <span id="scoreDisplay" class="font-game text-lg sm:text-2xl font-bold text-white">0</span>
                 </div>
-                <div class="flex items-center gap-3 text-xs sm:text-sm">
+                <div class="flex items-center gap-2.5 sm:gap-3 text-xs sm:text-sm flex-wrap">
                     <span class="text-sky-200">Distance : <span id="distanceDisplay" class="font-semibold text-white">0 m</span></span>
                     <span class="text-amber-300 font-semibold">🍁 <span id="bonusDisplay">0</span></span>
-                    <span class="text-slate-300">Record : <span id="highScoreDisplay" class="font-bold text-white">0</span></span>
+                    <span class="text-slate-300">Record : <span id="highScoreDisplay" class="font-bold text-white">0 pts</span></span>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2 pointer-events-auto">
+            <div class="flex items-center gap-2 pointer-events-auto shrink-0">
                 <button id="musicToggleBtn" type="button" class="bg-red-600/90 hover:bg-red-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-2xl shadow-lg border border-white/30 flex items-center gap-1.5 transition">
                     <span id="musicIcon">🎄</span>
                     <span id="musicLabel" class="hidden sm:inline">Musique : ON</span>
@@ -134,24 +146,22 @@
             </div>
         </div>
 
-        <!-- Boutons tactiles et indicateur -->
+        <!-- Contrôles tactiles : Haut / Bas à gauche, Sauter à droite -->
         <div id="mobileControls" class="hidden absolute bottom-4 sm:bottom-6 left-0 right-0 px-4 sm:px-8 flex justify-between items-end pointer-events-none z-20">
-            <div class="hidden md:flex items-center gap-2 bg-slate-900/65 backdrop-blur-md text-white/90 text-xs font-semibold px-4 py-2 rounded-full border border-white/15 mb-2">
-                <span>Haut / Bas : changer de file • Espace / Sauter : sauter</span>
+            <!-- Groupe gauche : boutons Haut / Bas -->
+            <div class="flex flex-col gap-2.5 pointer-events-auto">
+                <button id="btnLaneUpMobile" type="button" aria-label="Monter de file"
+                    class="mobile-action-btn btn-lane w-16 h-14 sm:w-20 sm:h-14 rounded-2xl text-white flex items-center justify-center font-game text-lg sm:text-xl font-bold select-none">
+                    ⬆️
+                </button>
+                <button id="btnLaneDownMobile" type="button" aria-label="Descendre de file"
+                    class="mobile-action-btn btn-lane w-16 h-14 sm:w-20 sm:h-14 rounded-2xl text-white flex items-center justify-center font-game text-lg sm:text-xl font-bold select-none">
+                    ⬇️
+                </button>
             </div>
 
-            <div class="flex items-end gap-2.5 sm:gap-3 ml-auto pointer-events-auto">
-                <div class="flex flex-col gap-2">
-                    <button id="btnLaneUpMobile" type="button" aria-label="Monter de file"
-                        class="mobile-action-btn btn-lane w-16 h-12 sm:w-20 sm:h-12 rounded-2xl text-white flex items-center justify-center font-game text-base sm:text-lg font-bold select-none">
-                        ⬆️
-                    </button>
-                    <button id="btnLaneDownMobile" type="button" aria-label="Descendre de file"
-                        class="mobile-action-btn btn-lane w-16 h-12 sm:w-20 sm:h-12 rounded-2xl text-white flex items-center justify-center font-game text-base sm:text-lg font-bold select-none">
-                        ⬇️
-                    </button>
-                </div>
-
+            <!-- Groupe droit : bouton Sauter -->
+            <div class="flex items-end pointer-events-auto">
                 <button id="btnJumpMobile" type="button" aria-label="Sauter"
                     class="mobile-action-btn btn-jump w-24 h-24 sm:w-32 sm:h-24 rounded-3xl text-white flex flex-col items-center justify-center gap-1 select-none">
                     <span class="text-2xl sm:text-3xl leading-none">⛸️⬆️</span>
@@ -162,7 +172,7 @@
 
         <!-- Écran d'accueil -->
         <div id="startScreen" class="absolute inset-0 bg-slate-900/55 backdrop-blur-sm flex items-center justify-center p-4 z-30">
-            <div class="bg-white/95 backdrop-blur-md w-full max-w-lg rounded-3xl p-5 sm:p-7 shadow-2xl border-4 border-sky-200 text-center max-h-[95vh] overflow-y-auto">
+            <div class="bg-white/95 backdrop-blur-md w-full max-w-lg rounded-3xl p-5 sm:p-7 shadow-2xl border-4 border-sky-200 text-center max-h-[95dvh] overflow-y-auto">
                 <div class="inline-flex items-center gap-2 bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full mb-2">
                     <span>🇨🇦</span>
                     <span>MONTRÉAL ENNEIGÉ • CHINATOWN & PONT</span>
@@ -175,42 +185,83 @@
                     Patinez sur la route verglacée, évitez les obstacles et ramassez les bonus sous la neige !
                 </p>
 
+                <!-- Sélection du patineur avec miniatures distinctives -->
                 <div class="mb-4">
                     <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Choisis ton patineur</p>
                     <div class="grid grid-cols-2 gap-3">
-                        <div id="cardMartinou" onclick="selectCharacter('martinou')"
-                             class="cursor-pointer rounded-2xl p-4 border-4 border-red-500 bg-red-50/90 transition-all shadow-md flex flex-col items-center relative">
+                        <div id="cardMartinou" onclick="selectCharacter('martinou')" role="button" tabindex="0" aria-pressed="true"
+                             class="cursor-pointer rounded-2xl p-3.5 sm:p-4 border-4 border-red-500 bg-red-50/90 transition-all shadow-md flex flex-col items-center relative">
                             <span id="badgeMartinou" class="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">CHOISI</span>
-                            <div id="previewMartinou" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-sky-200 border-2 border-white shadow-inner overflow-hidden flex items-center justify-center mb-2">
-                                <img src="assets/frames/Martinou.gif" alt="Martinou" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=\'text-3xl\'>🧣</span>'">
+                            <div id="previewMartinou" class="hero-thumb-frame w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-b from-sky-100 to-rose-100 border-2 border-white overflow-hidden flex items-center justify-center mb-2 relative">
+                                <img id="thumbMartinouImg" src="assets/frames/Martinou.gif" alt="Miniature de Martinou"
+                                     class="w-full h-full object-contain relative z-10"
+                                     onload="this.nextElementSibling.classList.add('hidden')"
+                                     onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
+                                <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-sky-100 to-red-100">
+                                    <svg viewBox="0 0 80 80" class="w-14 h-14 sm:w-16 sm:h-16" aria-hidden="true">
+                                        <circle cx="40" cy="34" r="15" fill="#f9d2b0" stroke="#7f1d1d" stroke-width="2.5"/>
+                                        <path d="M23 28 C25 14, 55 14, 57 28 Z" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+                                        <circle cx="40" cy="12" r="5" fill="#ffffff" stroke="#7f1d1d" stroke-width="1.8"/>
+                                        <circle cx="35" cy="34" r="2.2" fill="#1e293b"/>
+                                        <circle cx="45" cy="34" r="2.2" fill="#1e293b"/>
+                                        <path d="M35 41 Q40 45 45 41" fill="none" stroke="#7f1d1d" stroke-width="2.2" stroke-linecap="round"/>
+                                        <rect x="24" y="48" width="32" height="10" rx="5" fill="#ef4444" stroke="#7f1d1d" stroke-width="2"/>
+                                        <path d="M26 58 L22 72 M54 58 L58 72" stroke="#dc2626" stroke-width="4.5" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
                             </div>
-                            <span class="font-game font-bold text-slate-800 text-base sm:text-lg">Martinou</span>
+                            <span class="font-game font-bold text-slate-800 text-base sm:text-lg leading-tight">Martinou</span>
+                            <span class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 bg-red-100/90 px-2 py-0.5 rounded-full">
+                                <span>🧣</span>
+                                <span>Écharpe rouge</span>
+                            </span>
                         </div>
 
-                        <div id="cardBibinou" onclick="selectCharacter('bibinou')"
-                             class="cursor-pointer rounded-2xl p-4 border-2 border-slate-200 bg-slate-50/90 hover:border-sky-300 transition-all flex flex-col items-center relative">
+                        <div id="cardBibinou" onclick="selectCharacter('bibinou')" role="button" tabindex="0" aria-pressed="false"
+                             class="cursor-pointer rounded-2xl p-3.5 sm:p-4 border-2 border-slate-200 bg-slate-50/90 hover:border-sky-300 transition-all flex flex-col items-center relative">
                             <span id="badgeBibinou" class="hidden absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">CHOISI</span>
-                            <div id="previewBibinou" class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-amber-100 border-2 border-white shadow-inner overflow-hidden flex items-center justify-center mb-2">
-                                <img src="assets/frames/Bibinou.gif" alt="Bibinou" class="w-full h-full object-contain" onerror="this.parentElement.innerHTML='<span class=\'text-3xl\'>🧤</span>'">
+                            <div id="previewBibinou" class="hero-thumb-frame w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gradient-to-b from-amber-50 to-sky-100 border-2 border-white overflow-hidden flex items-center justify-center mb-2 relative">
+                                <img id="thumbBibinouImg" src="assets/frames/Bibinou.gif" alt="Miniature de Bibinou"
+                                     class="w-full h-full object-contain relative z-10"
+                                     onload="this.nextElementSibling.classList.add('hidden')"
+                                     onerror="this.classList.add('hidden'); this.nextElementSibling.classList.remove('hidden')">
+                                <div class="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-amber-50 to-sky-100">
+                                    <svg viewBox="0 0 80 80" class="w-14 h-14 sm:w-16 sm:h-16" aria-hidden="true">
+                                        <circle cx="40" cy="34" r="15" fill="#f6c7a1" stroke="#0c4a6e" stroke-width="2.5"/>
+                                        <path d="M24 27 C27 13, 53 13, 56 27 Z" fill="#0284c7" stroke="#0c4a6e" stroke-width="2"/>
+                                        <circle cx="40" cy="12" r="5" fill="#fbbf24" stroke="#0c4a6e" stroke-width="1.8"/>
+                                        <circle cx="35" cy="34" r="2.2" fill="#0f172a"/>
+                                        <circle cx="45" cy="34" r="2.2" fill="#0f172a"/>
+                                        <circle cx="40" cy="38" r="2.5" fill="#fb7185"/>
+                                        <path d="M35 42 Q40 46 45 42" fill="none" stroke="#0c4a6e" stroke-width="2.2" stroke-linecap="round"/>
+                                        <rect x="25" y="48" width="30" height="10" rx="5" fill="#38bdf8" stroke="#0c4a6e" stroke-width="2"/>
+                                        <path d="M27 58 L23 72 M53 58 L57 72" stroke="#0284c7" stroke-width="4.5" stroke-linecap="round"/>
+                                    </svg>
+                                </div>
                             </div>
-                            <span class="font-game font-bold text-slate-800 text-base sm:text-lg">Bibinou</span>
+                            <span class="font-game font-bold text-slate-800 text-base sm:text-lg leading-tight">Bibinou</span>
+                            <span class="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-sky-800 bg-sky-100/90 px-2 py-0.5 rounded-full">
+                                <span>🧤</span>
+                                <span>Bonnet bleu</span>
+                            </span>
                         </div>
                     </div>
                 </div>
 
+                <!-- Aide rapide -->
                 <div class="grid grid-cols-2 gap-2 text-left text-xs bg-sky-50 p-3 rounded-2xl border border-sky-100 mb-4">
                     <div class="flex items-center gap-2">
                         <span class="text-lg">⬆️⬇️</span>
                         <div>
                             <p class="font-bold text-slate-700">3 Files (Haut / Bas)</p>
-                            <p class="text-slate-500">Flèches / W-S / Boutons</p>
+                            <p class="text-slate-500">Boutons gauche / Flèches</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-lg">⛸️</span>
                         <div>
                             <p class="font-bold text-slate-700">Sauter</p>
-                            <p class="text-slate-500">Espace / Bouton rouge</p>
+                            <p class="text-slate-500">Bouton droite / Espace</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -237,8 +288,8 @@
 
         <!-- Écran Game Over -->
         <div id="gameOverScreen" class="hidden absolute inset-0 bg-slate-900/65 backdrop-blur-sm flex items-center justify-center p-4 z-30">
-            <div class="bg-white/95 backdrop-blur-md w-full max-w-sm rounded-3xl p-6 shadow-2xl border-4 border-red-200 text-center">
-                <div class="w-28 h-28 mx-auto mb-2 rounded-2xl bg-sky-100 border-2 border-sky-200 shadow-inner overflow-hidden flex items-center justify-center">
+            <div class="bg-white/95 backdrop-blur-md w-full max-w-sm rounded-3xl p-6 shadow-2xl border-4 border-red-200 text-center max-h-[95dvh] overflow-y-auto">
+                <div class="w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-2 rounded-2xl bg-sky-100 border-2 border-sky-200 shadow-inner overflow-hidden flex items-center justify-center">
                     <img id="gameOverGifImg" src="" alt="Fin de partie" class="w-full h-full object-contain">
                 </div>
                 <h2 class="text-2xl sm:text-3xl font-bold text-slate-800 mb-1">Oups, glissade !</h2>
@@ -282,7 +333,7 @@
         const runnerFaceOverlay = document.getElementById('runnerFaceOverlay');
         const runnerCanvasLayer = document.getElementById('runnerCanvasLayer');
 
-        // Buffers hors-écran pour le détourage des obstacles GIF et l'adoucissement léger des bords
+        // Buffers hors-écran pour le détourage des obstacles et l'adoucissement léger des bords
         const spriteScratchCanvas = document.createElement('canvas');
         const spriteScratchCtx = spriteScratchCanvas.getContext('2d', { willReadFrequently: true });
         const fadeMaskCanvas = document.createElement('canvas');
@@ -295,7 +346,7 @@
         customBgImage.onerror = () => { hasCustomBg = false; };
         customBgImage.src = 'assets/backgrounds/background.png';
 
-        // Chargement des GIFs d'obstacles
+        // Chargement des sprites d'obstacles
         const busGifImage = new Image();
         let busGifReady = false;
         busGifImage.onload = () => { busGifReady = true; };
@@ -319,11 +370,12 @@
             gameOver: false,
             width: 0,
             height: 0,
+            isPortrait: true,
             groundY: 0,
             lanes: [],
-            baseSpeed: 310,
-            speed: 310,
-            maxSpeed: 880,
+            baseSpeed: 300,
+            speed: 300,
+            maxSpeed: 860,
             elapsedTime: 0,
             distance: 0,
             bonusScore: 0,
@@ -342,8 +394,8 @@
                     skin: '#f9d2b0',
                     defaultGifPath: 'assets/frames/Martinou.gif',
                     gameOverGifPath: 'assets/frames/gameover-martinou.gif',
-                    gifScale: 1.71,
-                    verticalOffset: 42,
+                    gifScale: 1.65,
+                    verticalOffset: 38,
                     mediaUrl: null,
                     isGif: false
                 },
@@ -354,7 +406,7 @@
                     skin: '#f6c7a1',
                     defaultGifPath: 'assets/frames/Bibinou.gif',
                     gameOverGifPath: 'assets/frames/gameover-bibinou.gif',
-                    gifScale: 1.71,
+                    gifScale: 1.65,
                     verticalOffset: 0,
                     mediaUrl: null,
                     isGif: false
@@ -369,7 +421,7 @@
                 baseHeight: 76,
                 duckHeight: 76,
                 vy: 0,
-                gravity: 1680,
+                gravity: 1720,
                 jumpForce: -940,
                 isGrounded: true,
                 isDucking: false,
@@ -541,10 +593,8 @@
         const christmasAudio = new ChristmasAudioEngine();
 
         /**
-         * Dessine un sprite d'obstacle (bus ou renne) en gardant le sujet bien net et opaque,
-         * tout en éliminant le fond blanc (y compris entre les bois/pattes) et en adoucissant
-         * proprement les bords pour supprimer l'effet rectangle blanc sans abîmer le corps.
-         * Pour femme.jpg, conserve un fondu léger centré sur le contour extérieur.
+         * Détoure le fond clair des sprites d'obstacles et applique un fondu périphérique
+         * pour préserver l'intégration visuelle sur la piste enneigée.
          */
         function drawKeyedWhiteSprite(img, dx, dy, dw, dh, options = {}) {
             const w = Math.max(1, Math.round(dw));
@@ -563,7 +613,6 @@
 
                 if (softEdge) {
                     if (isWoman) {
-                        // Fondu léger uniquement sur le pourtour extérieur pour préserver femme.jpg
                         const gradX = fadeMaskCtx.createLinearGradient(0, 0, targetW, 0);
                         gradX.addColorStop(0, 'rgba(0,0,0,0)');
                         gradX.addColorStop(0.10, 'rgba(0,0,0,0.92)');
@@ -587,7 +636,6 @@
                         return;
                     }
 
-                    // Fondu plus prononcé sur le pourtour du bus et du renne pour effacer le cadre blanc
                     const gradX = fadeMaskCtx.createLinearGradient(0, 0, targetW, 0);
                     gradX.addColorStop(0, 'rgba(0,0,0,0)');
                     gradX.addColorStop(0.14, 'rgba(0,0,0,0.55)');
@@ -752,28 +800,34 @@
                 spriteScratchCtx.globalCompositeOperation = 'source-over';
 
                 ctx.save();
-                if (!isWoman) {
-                    ctx.globalCompositeOperation = 'multiply';
-                    ctx.drawImage(spriteScratchCanvas, drawX, drawY, w, h);
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.globalAlpha = 0.85;
-                    ctx.drawImage(spriteScratchCanvas, drawX, drawY, w, h);
-                } else {
-                    ctx.globalCompositeOperation = 'multiply';
-                    ctx.drawImage(spriteScratchCanvas, drawX, drawY, w, h);
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.globalAlpha = 0.92;
-                    ctx.drawImage(spriteScratchCanvas, drawX, drawY, w, h);
-                }
+                ctx.globalCompositeOperation = 'multiply';
+                ctx.drawImage(spriteScratchCanvas, drawX, drawY, w, h);
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = isWoman ? 0.92 : 0.85;
+                ctx.drawImage(spriteScratchCanvas, drawX, drawY, w, h);
                 ctx.restore();
             }
         }
 
+        /**
+         * Calcule les 3 files de patinage de façon adaptée aux écrans verticaux (portrait)
+         * et horizontaux, tout en laissant suffisamment d'espace au-dessus pour le saut
+         * et en bas pour les boutons tactiles.
+         */
         function computeLanes() {
-            const h = state.height || window.innerHeight || 600;
-            const topLaneY = Math.round(h * 0.78);
-            const midLaneY = Math.round(h * 0.86);
-            const bottomLaneY = Math.round(h * 0.94);
+            const h = state.height || window.innerHeight || 700;
+            const portrait = state.isPortrait;
+
+            if (portrait) {
+                const topLaneY = Math.round(h * 0.64);
+                const midLaneY = Math.round(h * 0.72);
+                const bottomLaneY = Math.round(h * 0.80);
+                return [topLaneY, midLaneY, bottomLaneY];
+            }
+
+            const topLaneY = Math.round(h * 0.76);
+            const midLaneY = Math.round(h * 0.85);
+            const bottomLaneY = Math.round(h * 0.93);
             return [topLaneY, midLaneY, bottomLaneY];
         }
 
@@ -784,13 +838,22 @@
         }
 
         function getLaneAxisY(laneIndex, scaleFactor = 1) {
-            return getLaneGroundY(laneIndex) + Math.round(14 * scaleFactor);
+            return getLaneGroundY(laneIndex) + Math.round(12 * scaleFactor);
         }
 
         function getLaneObstacleSizeMultiplier(laneIndex) {
-            if (laneIndex === 2) return 1.24;
-            if (laneIndex === 1) return 1.06;
-            return 0.92;
+            if (laneIndex === 2) return state.isPortrait ? 1.14 : 1.24;
+            if (laneIndex === 1) return state.isPortrait ? 1.02 : 1.06;
+            return state.isPortrait ? 0.90 : 0.92;
+        }
+
+        function getResponsiveScaleFactor() {
+            const w = state.width || window.innerWidth || 400;
+            const h = state.height || window.innerHeight || 700;
+            if (state.isPortrait) {
+                return Math.max(0.76, Math.min(1.06, Math.min(w / 430, h / 820)));
+            }
+            return Math.max(0.88, Math.min(1.22, h / 760));
         }
 
         function initDefaultCharacterGifs() {
@@ -816,14 +879,18 @@
             const highScoreDisplay = document.getElementById('highScoreDisplay');
 
             if (heroKey === 'martinou') {
-                cardMartinou.className = 'cursor-pointer rounded-2xl p-4 border-4 border-red-500 bg-red-50/90 transition-all shadow-md flex flex-col items-center relative';
-                cardBibinou.className = 'cursor-pointer rounded-2xl p-4 border-2 border-slate-200 bg-slate-50/90 hover:border-sky-300 transition-all flex flex-col items-center relative';
+                cardMartinou.className = 'cursor-pointer rounded-2xl p-3.5 sm:p-4 border-4 border-red-500 bg-red-50/90 transition-all shadow-md flex flex-col items-center relative';
+                cardMartinou.setAttribute('aria-pressed', 'true');
+                cardBibinou.className = 'cursor-pointer rounded-2xl p-3.5 sm:p-4 border-2 border-slate-200 bg-slate-50/90 hover:border-sky-300 transition-all flex flex-col items-center relative';
+                cardBibinou.setAttribute('aria-pressed', 'false');
                 badgeMartinou.classList.remove('hidden');
                 badgeBibinou.classList.add('hidden');
                 hudHeroBadge.className = 'bg-red-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full';
             } else {
-                cardBibinou.className = 'cursor-pointer rounded-2xl p-4 border-4 border-sky-500 bg-sky-50/90 transition-all shadow-md flex flex-col items-center relative';
-                cardMartinou.className = 'cursor-pointer rounded-2xl p-4 border-2 border-slate-200 bg-slate-50/90 hover:border-red-300 transition-all flex flex-col items-center relative';
+                cardBibinou.className = 'cursor-pointer rounded-2xl p-3.5 sm:p-4 border-4 border-sky-500 bg-sky-50/90 transition-all shadow-md flex flex-col items-center relative';
+                cardBibinou.setAttribute('aria-pressed', 'true');
+                cardMartinou.className = 'cursor-pointer rounded-2xl p-3.5 sm:p-4 border-2 border-slate-200 bg-slate-50/90 hover:border-red-300 transition-all flex flex-col items-center relative';
+                cardMartinou.setAttribute('aria-pressed', 'false');
                 badgeBibinou.classList.remove('hidden');
                 badgeMartinou.classList.add('hidden');
                 hudHeroBadge.className = 'bg-sky-600 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full';
@@ -860,26 +927,33 @@
 
         function resizeCanvas() {
             const container = document.getElementById('gameContainer');
-            state.width = container.clientWidth || window.innerWidth || 800;
-            state.height = container.clientHeight || window.innerHeight || 600;
+            state.width = container.clientWidth || window.innerWidth || 400;
+            state.height = container.clientHeight || window.innerHeight || 720;
+            state.isPortrait = state.height >= state.width;
             canvas.width = state.width;
             canvas.height = state.height;
 
             state.lanes = computeLanes();
             state.runner.lane = Math.max(0, Math.min(2, state.runner.lane ?? 1));
             state.groundY = getLaneGroundY(state.runner.lane);
-            state.runner.x = Math.max(80, Math.round(state.width * 0.22));
 
-            if (state.runner.isGrounded) state.runner.y = state.groundY;
+            // Position horizontale adaptée à la largeur en mode vertical
+            state.runner.x = state.isPortrait
+                ? Math.max(82, Math.min(145, Math.round(state.width * 0.28)))
+                : Math.max(90, Math.round(state.width * 0.22));
+
+            if (state.runner.isGrounded) {
+                state.runner.y = state.groundY;
+            }
         }
 
         function initSnow() {
-            const count = Math.max(28, Math.min(75, Math.floor(state.width / 22)));
+            const count = Math.max(28, Math.min(75, Math.floor((state.width * state.height) / 14000)));
             state.snowflakes = [];
             for (let i = 0; i < count; i++) {
                 state.snowflakes.push({
-                    x: Math.random() * (state.width || window.innerWidth || 800),
-                    y: Math.random() * (state.height || window.innerHeight || 600),
+                    x: Math.random() * (state.width || window.innerWidth || 400),
+                    y: Math.random() * (state.height || window.innerHeight || 720),
                     radius: 1.5 + Math.random() * 2.5,
                     speedY: 32 + Math.random() * 48,
                     drift: -10 + Math.random() * 20
@@ -909,15 +983,15 @@
             resizeCanvas();
             state.running = true;
             state.gameOver = false;
-            state.speed = state.baseSpeed;
+            state.speed = state.isPortrait ? 275 : state.baseSpeed;
             state.elapsedTime = 0;
             state.distance = 0;
             state.bonusScore = 0;
             state.obstacles = [];
             state.bonuses = [];
             state.popups = [];
-            state.spawnTimer = 1.2;
-            state.bonusTimer = 1.6;
+            state.spawnTimer = 1.25;
+            state.bonusTimer = 1.65;
 
             state.lanes = computeLanes();
             state.runner.lane = 1;
@@ -977,14 +1051,13 @@
         }
 
         function spawnObstacle() {
-            const scaleFactor = Math.max(0.88, Math.min(1.22, state.height / 760));
-            const sizeBoost = 1.5;
+            const scaleFactor = getResponsiveScaleFactor();
+            const sizeBoost = state.isPortrait ? 1.25 : 1.5;
             const lane = Math.floor(Math.random() * 3);
             const laneSizeMult = getLaneObstacleSizeMultiplier(lane);
             const totalSizeScale = scaleFactor * sizeBoost * laneSizeMult;
             const laneAxisY = getLaneAxisY(lane, scaleFactor);
 
-            // Tirage pondéré parmi les obstacles disponibles (renne, femme ou bus)
             const availableTypes = [];
             if (reindeerGifReady) availableTypes.push('reindeer');
             if (womanJpgReady) availableTypes.push('woman');
@@ -1085,16 +1158,17 @@
         function spawnBonus() {
             const isPoutine = Math.random() < 0.28;
             const lane = Math.floor(Math.random() * 3);
-            const scaleFactor = Math.max(0.88, Math.min(1.22, state.height / 760));
+            const scaleFactor = getResponsiveScaleFactor();
             const laneAxisY = getLaneAxisY(lane, scaleFactor);
-            const heights = [laneAxisY - 20, laneAxisY - 46];
+            const heights = [laneAxisY - 18, laneAxisY - 40];
             const y = heights[Math.floor(Math.random() * heights.length)];
+            const bonusSize = Math.round(48 * Math.max(0.85, Math.min(1.15, scaleFactor)));
             state.bonuses.push({
                 type: isPoutine ? 'poutine' : 'maple',
                 lane,
                 x: state.width + 50,
                 y,
-                size: 52,
+                size: bonusSize,
                 bobPhase: Math.random() * Math.PI * 2
             });
         }
@@ -1133,8 +1207,9 @@
 
             if (!state.running) return;
 
+            const initialSpeed = state.isPortrait ? 275 : state.baseSpeed;
             state.elapsedTime += dt;
-            state.speed = Math.min(state.maxSpeed, state.baseSpeed + state.elapsedTime * 7.5);
+            state.speed = Math.min(state.maxSpeed, initialSpeed + state.elapsedTime * 7.2);
             state.distance += (state.speed * dt) / 22;
             state.bgScroll += state.speed * 0.28 * dt;
             state.roadScroll += state.speed * dt;
@@ -1168,7 +1243,9 @@
             state.spawnTimer -= dt;
             if (state.spawnTimer <= 0) {
                 spawnObstacle();
-                const minGap = Math.max(0.85, 1.85 - state.elapsedTime * 0.015);
+                const minGap = state.isPortrait
+                    ? Math.max(1.05, 2.05 - state.elapsedTime * 0.014)
+                    : Math.max(0.85, 1.85 - state.elapsedTime * 0.015);
                 state.spawnTimer = minGap + Math.random() * 0.75;
             }
 
@@ -1210,7 +1287,7 @@
                     }
                 }
 
-                if (obs.x + (obs.visualWidth || obs.width) < -180) {
+                if (obs.x + (obs.visualWidth || obs.width) < -220) {
                     state.obstacles.splice(i, 1);
                 }
             }
@@ -1243,7 +1320,7 @@
                     continue;
                 }
 
-                if (b.x < -50) state.bonuses.splice(i, 1);
+                if (b.x < -60) state.bonuses.splice(i, 1);
             }
 
             for (let i = state.popups.length - 1; i >= 0; i--) {
@@ -1262,7 +1339,7 @@
         function drawIcyRoad() {
             if (Array.isArray(state.lanes) && state.lanes.length === 3) {
                 ctx.save();
-                ctx.strokeStyle = 'rgba(255, 255, 255, 0.52)';
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.55)';
                 ctx.lineWidth = 2;
                 ctx.setLineDash([18, 14]);
                 ctx.lineDashOffset = -(state.roadScroll % 32);
@@ -1299,7 +1376,8 @@
                 return;
             }
 
-            const roadTopY = Math.max(0, Math.min(state.height - 90, state.groundY - 36));
+            const topLaneY = Array.isArray(state.lanes) && state.lanes.length === 3 ? state.lanes[0] : state.groundY;
+            const roadTopY = Math.max(0, topLaneY - 36);
             const roadH = state.height - roadTopY;
             const iceGrad = ctx.createLinearGradient(0, roadTopY, 0, state.height);
             iceGrad.addColorStop(0, '#dbeafe');
@@ -1321,7 +1399,6 @@
                 const laneNumber = (typeof b.lane === 'number' ? b.lane : 0) + 1;
 
                 ctx.save();
-                // Halo lumineux pour détacher le bonus sur la neige
                 const glowRadius = drawSize * 0.62;
                 const glow = ctx.createRadialGradient(b.x, bobY, 4, b.x, bobY, glowRadius);
                 if (b.type === 'poutine') {
@@ -1338,7 +1415,6 @@
                 ctx.arc(b.x, bobY, glowRadius, 0, Math.PI * 2);
                 ctx.fill();
 
-                // Pastille semi-transparente pour renforcer le contraste
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
                 ctx.beginPath();
                 ctx.arc(b.x, bobY, drawSize * 0.44, 0, Math.PI * 2);
@@ -1351,7 +1427,6 @@
                 ctx.fillStyle = '#0f172a';
                 ctx.fillText(b.type === 'poutine' ? '🍟' : '🍁', b.x, bobY + 1);
 
-                // Petit badge numéro de voie (1 à 3) au-dessus du bonus
                 const badgeY = bobY - drawSize * 0.56;
                 ctx.fillStyle = 'rgba(15, 23, 42, 0.88)';
                 ctx.beginPath();
@@ -1383,7 +1458,7 @@
                 return;
             }
 
-            const horizonY = state.groundY;
+            const horizonY = Array.isArray(state.lanes) && state.lanes.length === 3 ? state.lanes[0] : state.groundY;
             const skyGrad = ctx.createLinearGradient(0, 0, 0, horizonY);
             skyGrad.addColorStop(0, '#8fb2d9');
             skyGrad.addColorStop(0.6, '#c7dcf2');
@@ -1419,16 +1494,6 @@
                     continue;
                 }
 
-                if (obs.type === 'woman' && womanJpgReady) {
-                    drawKeyedWhiteSprite(womanJpgImage, vx, vy, vw, vh);
-                    continue;
-                }
-
-                if (obs.type === 'bus' && busGifReady) {
-                    drawKeyedWhiteSprite(busGifImage, vx, vy, vw, vh);
-                    continue;
-                }
-
                 if (obs.type === 'reindeer') {
                     ctx.fillStyle = '#78350f';
                     ctx.beginPath();
@@ -1447,21 +1512,21 @@
         function drawRunner() {
             const r = state.runner;
             const hero = state.heroes[state.selectedHero];
-            const scaleFactor = Math.max(0.88, Math.min(1.22, state.height / 760));
+            const scaleFactor = getResponsiveScaleFactor();
             const laneAxisY = getLaneAxisY(r.lane, scaleFactor);
             const jumpOffset = r.y - getLaneGroundY(r.lane);
             const runnerVisualBaseY = laneAxisY + jumpOffset;
 
             ctx.fillStyle = 'rgba(15, 23, 42, 0.25)';
             ctx.beginPath();
-            ctx.ellipse(r.x, laneAxisY + 3, 24, 6, 0, 0, Math.PI * 2);
+            ctx.ellipse(r.x, laneAxisY + 3, 22 * scaleFactor, 5.5 * scaleFactor, 0, 0, Math.PI * 2);
             ctx.fill();
 
             if (r.shieldTimer > 0) {
                 ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
                 ctx.lineWidth = 3;
                 ctx.beginPath();
-                ctx.arc(r.x, runnerVisualBaseY - r.height * 0.5, Math.max(r.width, r.height) * 0.58, 0, Math.PI * 2);
+                ctx.arc(r.x, runnerVisualBaseY - r.height * 0.5, Math.max(r.width, r.height) * 0.58 * scaleFactor, 0, Math.PI * 2);
                 ctx.stroke();
             }
 
@@ -1500,10 +1565,10 @@
             runnerGifLayer.classList.add('hidden');
             runnerFaceOverlay.classList.add('hidden');
 
-            const topY = runnerVisualBaseY - r.height;
+            const topY = runnerVisualBaseY - r.height * scaleFactor;
             ctx.fillStyle = hero.color;
             ctx.beginPath();
-            ctx.roundRect(r.x - 15, topY + 24, 30, r.height - 34, 10);
+            ctx.roundRect(r.x - 15 * scaleFactor, topY + 24 * scaleFactor, 30 * scaleFactor, (r.height - 34) * scaleFactor, 10);
             ctx.fill();
         }
 
@@ -1515,7 +1580,7 @@
                 ctx.fill();
             }
 
-            ctx.font = 'bold 16px Fredoka, sans-serif';
+            ctx.font = 'bold 15px Fredoka, sans-serif';
             ctx.textAlign = 'center';
             for (const p of state.popups) {
                 ctx.globalAlpha = Math.max(0, p.alpha);
@@ -1569,6 +1634,7 @@
             ['touchstart', 'mousedown'].forEach((evtName) => {
                 btn.addEventListener(evtName, (e) => {
                     e.preventDefault();
+                    e.stopPropagation();
                     btn.classList.add('is-pressed');
                     actionFn();
                 }, { passive: false });
@@ -1600,7 +1666,10 @@
             }
         });
 
-        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('resize', () => {
+            resizeCanvas();
+            initSnow();
+        });
 
         function initRunnerApp() {
             resizeCanvas();
