@@ -140,8 +140,8 @@
                 <span>Haut / Bas : changer de file • Espace / Sauter : sauter</span>
             </div>
 
-            <div class="flex items-end gap-2.5 sm:gap-3 ml-auto pointer-events-auto">
-                <div class="flex flex-col gap-2">
+            <div class="w-full md:w-auto md:ml-auto flex items-end justify-between md:justify-end gap-2.5 sm:gap-3">
+                <div class="flex flex-col gap-2 pointer-events-auto">
                     <button id="btnLaneUpMobile" type="button" aria-label="Monter de file"
                         class="mobile-action-btn btn-lane w-16 h-12 sm:w-20 sm:h-12 rounded-2xl text-white flex items-center justify-center font-game text-base sm:text-lg font-bold select-none">
                         ⬆️
@@ -153,7 +153,7 @@
                 </div>
 
                 <button id="btnJumpMobile" type="button" aria-label="Sauter"
-                    class="mobile-action-btn btn-jump w-24 h-24 sm:w-32 sm:h-24 rounded-3xl text-white flex flex-col items-center justify-center gap-1 select-none">
+                    class="mobile-action-btn btn-jump w-24 h-24 sm:w-32 sm:h-24 rounded-3xl text-white flex flex-col items-center justify-center gap-1 select-none pointer-events-auto">
                     <span class="text-2xl sm:text-3xl leading-none">⛸️⬆️</span>
                     <span class="font-game text-sm sm:text-base font-bold tracking-wide uppercase">Sauter</span>
                 </button>
@@ -771,9 +771,12 @@
 
         function computeLanes() {
             const h = state.height || window.innerHeight || 600;
-            const topLaneY = Math.round(h * 0.78);
-            const midLaneY = Math.round(h * 0.86);
-            const bottomLaneY = Math.round(h * 0.94);
+            // Descente d'environ 2 cm (~76 px) pour aligner les 3 lignes sur le décor de la route
+            const dropPx = 76;
+            const maxLaneY = h - 8;
+            const topLaneY = Math.min(maxLaneY, Math.round(h * 0.78) + dropPx);
+            const midLaneY = Math.min(maxLaneY, Math.round(h * 0.86) + dropPx);
+            const bottomLaneY = Math.min(maxLaneY, Math.round(h * 0.94) + dropPx);
             return [topLaneY, midLaneY, bottomLaneY];
         }
 
