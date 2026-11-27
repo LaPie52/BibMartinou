@@ -502,7 +502,14 @@
                 // Remplacez cette configuration par celle de votre projet si vous hébergez sur GitHub Pages
                 const rawConfig = typeof __firebase_config !== 'undefined'
                     ? JSON.parse(__firebase_config)
-                    : null;
+                    {
+                  apiKey: "AIzaSyCI58EH9nZLBu70ofdxkmA1NiRgteQhonA",
+                  authDomain: "bibmartinou.firebaseapp.com",
+                  projectId: "bibmartinou",
+                  storageBucket: "bibmartinou.firebasestorage.app",
+                  messagingSenderId: "93722975840",
+                  appId: "1:93722975840:web:de1ae130e884de30b82d05"
+                };
 
                 if (!rawConfig) {
                     renderLeaderboardUI();
