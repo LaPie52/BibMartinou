@@ -820,11 +820,11 @@
 
         /**
          * Calcule les 3 files de patinage de façon adaptée aux écrans verticaux (portrait)
-         * et horizontaux, remontées d'environ 4 cm (~150 px) sur la route verglacée.
+         * et horizontaux, rabaissées d'environ 1 cm (~38 px) sur la route verglacée.
          */
         function computeLanes() {
             const h = state.height || window.innerHeight || 700;
-            const verticalShiftPx = -76 - getPortraitLiftPx();
+            const verticalShiftPx = -38 - getPortraitLiftPx();
             const minLaneY = 120;
             const maxLaneY = h - 8;
             const topLaneY = Math.max(minLaneY, Math.min(maxLaneY, Math.round(h * 0.78) + verticalShiftPx));
@@ -1103,12 +1103,12 @@
                 const aspectRatio = natW / natH;
                 const visualHeight = Math.round(92 * totalSizeScale);
                 const visualWidth = Math.round(visualHeight * aspectRatio);
-                const floorY = laneAxisY + Math.round(8 * scaleFactor * laneSizeMult);
+                const floorY = laneAxisY + Math.round(6 * scaleFactor * laneSizeMult);
                 const startX = state.width + 40;
                 const visualY = floorY - visualHeight;
 
-                const hitboxWidth = Math.round(visualWidth * 0.52);
-                const hitboxHeight = Math.round(visualHeight * 0.44);
+                const hitboxWidth = Math.round(visualWidth * 0.62);
+                const hitboxHeight = Math.round(visualHeight * 0.62);
                 const hitboxX = startX + Math.round((visualWidth - hitboxWidth) * 0.5);
                 const hitboxY = floorY - hitboxHeight;
 
@@ -1258,22 +1258,29 @@
             }
 
             const runnerBox = {
-                x: r.x - r.width * 0.18,
-                y: r.y - r.height + 16,
-                width: r.width * 0.36,
-                height: r.height - 20
+                x: r.x - r.width * 0.22,
+                y: r.y - r.height + 12,
+                width: r.width * 0.44,
+                height: r.height - 14
             };
 
             for (let i = state.obstacles.length - 1; i >= 0; i--) {
                 const obs = state.obstacles[i];
                 obs.x -= state.speed * dt;
 
-                const obsBox = {
-                    x: obs.x + obs.width * 0.12,
-                    y: obs.y + obs.height * 0.14,
-                    width: obs.width * 0.76,
-                    height: obs.height * 0.82
-                };
+                const obsBox = obs.type === 'woman'
+                    ? {
+                        x: obs.x + obs.width * 0.08,
+                        y: obs.y + obs.height * 0.06,
+                        width: obs.width * 0.84,
+                        height: obs.height * 0.92
+                    }
+                    : {
+                        x: obs.x + obs.width * 0.12,
+                        y: obs.y + obs.height * 0.14,
+                        width: obs.width * 0.76,
+                        height: obs.height * 0.82
+                    };
 
                 if (rectsOverlap(runnerBox, obsBox)) {
                     if (obs.lane !== undefined && obs.lane !== r.lane) continue;
