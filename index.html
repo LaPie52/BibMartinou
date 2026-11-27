@@ -139,6 +139,10 @@
             </div>
 
             <div class="flex items-center gap-2 pointer-events-auto shrink-0">
+                <button id="leaderboardHudBtn" type="button" class="bg-amber-500/95 hover:bg-amber-600 active:scale-95 text-slate-950 text-xs sm:text-sm font-bold px-3 py-2.5 rounded-2xl shadow-lg border border-white/40 flex items-center gap-1 transition" title="Classement mondial">
+                    <span>🏆</span>
+                    <span class="hidden sm:inline">Top</span>
+                </button>
                 <button id="musicToggleBtn" type="button" class="bg-red-600/90 hover:bg-red-700 active:scale-95 text-white text-xs sm:text-sm font-bold px-3.5 py-2.5 rounded-2xl shadow-lg border border-white/30 flex items-center gap-1.5 transition">
                     <span id="musicIcon">🎄</span>
                     <span id="musicLabel" class="hidden sm:inline">Musique : ON</span>
@@ -181,9 +185,20 @@
                 <h1 class="text-2xl sm:text-4xl font-bold text-slate-800 mb-1">
                     Le Runner Hivernal
                 </h1>
-                <p class="text-slate-600 text-xs sm:text-sm mb-4">
+                <p class="text-slate-600 text-xs sm:text-sm mb-3">
                     Patinez sur la route verglacée, évitez les obstacles et ramassez les bonus sous la neige !
                 </p>
+
+                <!-- Pseudo du joueur pour le classement partagé -->
+                <div class="mb-3.5 bg-slate-100/90 p-2.5 rounded-2xl border border-slate-200 flex items-center gap-2">
+                    <span class="text-lg pl-1">🏅</span>
+                    <input id="playerPseudoInput" type="text" maxlength="16" placeholder="Ton pseudo (ex: Martinou52)"
+                           class="w-full bg-white text-slate-800 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:border-red-500" />
+                    <button id="openLeaderboardStartBtn" type="button"
+                            class="shrink-0 bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-900 font-bold text-xs px-3 py-2 rounded-xl shadow-sm transition cursor-pointer">
+                        🏆 Top 10
+                    </button>
+                </div>
 
                 <!-- Sélection du patineur avec miniatures distinctives -->
                 <div class="mb-4">
@@ -318,13 +333,210 @@
                     <button id="restartBtn" type="button" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 active:scale-95 text-white font-game text-lg font-bold py-3 px-6 rounded-2xl shadow-lg transition cursor-pointer">
                         🔄 Rejouer
                     </button>
+                    <button id="openLeaderboardEndBtn" type="button" class="w-full bg-amber-400 hover:bg-amber-500 active:scale-95 text-slate-900 font-game font-bold text-base py-2.5 px-4 rounded-2xl shadow transition cursor-pointer">
+                        🏆 Voir le classement partagé
+                    </button>
                     <button id="changeHeroBtn" type="button" class="w-full bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-700 font-semibold text-sm py-2.5 px-4 rounded-2xl transition cursor-pointer">
                         Changer de personnage
                     </button>
                 </div>
             </div>
         </div>
+
+        <!-- Modale Classement Partagé (Top 10 en ligne) -->
+        <div id="leaderboardModal" class="hidden absolute inset-0 bg-slate-900/70 backdrop-blur-sm flex items-center justify-center p-4 z-40">
+            <div class="bg-white/95 backdrop-blur-md w-full max-w-md rounded-3xl p-5 sm:p-6 shadow-2xl border-4 border-amber-300 text-center max-h-[90dvh] flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="inline-flex items-center gap-1.5 bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">
+                        <span>🌍</span>
+                        <span>CLASSEMENT EN LIGNE</span>
+                    </span>
+                    <button id="closeLeaderboardBtn" type="button" aria-label="Fermer"
+                            class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-sm flex items-center justify-center cursor-pointer">
+                        ✕
+                    </button>
+                </div>
+
+                <h2 class="text-xl sm:text-2xl font-bold text-slate-800 mb-1">Top 10 des Patineurs</h2>
+                <p id="leaderboardStatusText" class="text-xs text-slate-500 mb-3">Scores partagés avec tous les joueurs connectés</p>
+
+                <div id="leaderboardList" class="flex-1 overflow-y-auto space-y-2 pr-1 text-left mb-4 min-h-[180px]">
+                    <div class="text-center text-slate-400 text-sm py-8">Chargement des scores...</div>
+                </div>
+
+                <div class="text-[11px] text-slate-500 bg-slate-100 rounded-xl px-3 py-2 mb-3">
+                    Ton identifiant joueur : <span id="playerUidBadge" class="font-mono font-semibold text-slate-700 break-all">...</span>
+                </div>
+
+                <button id="closeLeaderboardBottomBtn" type="button" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-game font-bold py-2.5 px-4 rounded-2xl transition cursor-pointer">
+                    Fermer
+                </button>
+            </div>
+        </div>
     </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initialisation sécurisée du partage de scores en ligne (compatible GitHub Pages et environnement hébergé)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bib-martinou-github';
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let sharedScoresCache = [];
+        let unsubscribeLeaderboard = null;
+
+        function getPlayerPseudo() {
+            const input = document.getElementById('playerPseudoInput');
+            const raw = input ? input.value.trim() : '';
+            if (raw) return raw.slice(0, 16);
+            return currentUser ? `Patineur-${currentUser.uid.slice(0, 4)}` : 'Patineur';
+        }
+
+        function escapeHtml(str) {
+            return String(str).replace(/[&<>"']/g, (ch) => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[ch]));
+        }
+
+        function renderLeaderboardUI() {
+            const listEl = document.getElementById('leaderboardList');
+            if (!listEl) return;
+
+            if (!db) {
+                listEl.innerHTML = `<div class="text-center text-slate-500 text-xs py-6 px-3 bg-slate-50 rounded-2xl border border-slate-200">
+                    Connectez votre configuration serveur pour activer la synchronisation mondiale sur GitHub Pages.
+                </div>`;
+                return;
+            }
+
+            if (sharedScoresCache.length === 0) {
+                listEl.innerHTML = `<div class="text-center text-slate-400 text-sm py-8">Aucun score enregistré pour le moment. Soyez le premier ! ⛷️</div>`;
+                return;
+            }
+
+            const top10 = [...sharedScoresCache]
+                .sort((a, b) => (b.score || 0) - (a.score || 0))
+                .slice(0, 10);
+
+            listEl.innerHTML = top10.map((entry, idx) => {
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+                const isMe = currentUser && entry.uid === currentUser.uid;
+                const heroTag = entry.hero === 'bibinou'
+                    ? '<span class="text-[10px] font-bold bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full">Bibinou</span>'
+                    : '<span class="text-[10px] font-bold bg-red-100 text-red-700 px-2 py-0.5 rounded-full">Martinou</span>';
+
+                return `
+                    <div class="flex items-center justify-between px-3 py-2.5 rounded-2xl border ${isMe ? 'bg-amber-50 border-amber-400 shadow-sm' : 'bg-slate-50 border-slate-200'}">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <span class="font-game font-bold text-base w-7 text-center shrink-0">${medal}</span>
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-slate-800 text-sm truncate">${escapeHtml(entry.pseudo || 'Patineur')}</span>
+                                    ${heroTag}
+                                </div>
+                                <p class="text-[11px] text-slate-500">${entry.distance || 0} m parcourus</p>
+                            </div>
+                        </div>
+                        <span class="font-game font-bold text-red-600 text-base shrink-0">${entry.score || 0} pts</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function subscribeToSharedScores() {
+            if (!db || !currentUser) return;
+            if (unsubscribeLeaderboard) unsubscribeLeaderboard();
+
+            const scoresColRef = collection(db, 'artifacts', appId, 'public', 'data', 'leaderboard');
+            unsubscribeLeaderboard = onSnapshot(
+                scoresColRef,
+                (snapshot) => {
+                    const items = [];
+                    snapshot.forEach((docSnap) => {
+                        items.push({ id: docSnap.id, ...docSnap.data() });
+                    });
+                    sharedScoresCache = items;
+                    renderLeaderboardUI();
+                },
+                (err) => {
+                    const statusEl = document.getElementById('leaderboardStatusText');
+                    if (statusEl) statusEl.textContent = 'Mode hors-ligne (synchronisation indisponible)';
+                    console.warn('Erreur lecture classement :', err);
+                }
+            );
+        }
+
+        async function publishPlayerBestScore(heroKey, totalScore, distanceMeters) {
+            if (!db || !currentUser) return;
+            try {
+                const docId = `${currentUser.uid}_${heroKey}`;
+                const existing = sharedScoresCache.find((item) => item.id === docId);
+                if (existing && (existing.score || 0) >= totalScore) {
+                    return;
+                }
+                const scoreDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'leaderboard', docId);
+                await setDoc(scoreDocRef, {
+                    uid: currentUser.uid,
+                    pseudo: getPlayerPseudo(),
+                    hero: heroKey,
+                    score: totalScore,
+                    distance: distanceMeters,
+                    updatedAt: Date.now()
+                }, { merge: true });
+            } catch (err) {
+                console.warn('Erreur sauvegarde score partagé :', err);
+            }
+        }
+
+        window.publishSharedRunnerScore = publishPlayerBestScore;
+
+        async function initCloudLeaderboard() {
+            try {
+                // Remplacez cette configuration par celle de votre projet si vous hébergez sur GitHub Pages
+                const rawConfig = typeof __firebase_config !== 'undefined'
+                    ? JSON.parse(__firebase_config)
+                    : null;
+
+                if (!rawConfig) {
+                    renderLeaderboardUI();
+                    return;
+                }
+
+                const app = initializeApp(rawConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    currentUser = user;
+                    const uidBadge = document.getElementById('playerUidBadge');
+                    if (uidBadge && user) {
+                        uidBadge.textContent = user.uid;
+                    }
+                    if (user) {
+                        subscribeToSharedScores();
+                    }
+                });
+            } catch (err) {
+                console.warn('Initialisation classement ignorée :', err);
+                renderLeaderboardUI();
+            }
+        }
+
+        initCloudLeaderboard();
+    </script>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -1029,7 +1241,10 @@
             const total = distMeters + state.bonusScore;
             if (total > state.highScores[state.selectedHero]) {
                 state.highScores[state.selectedHero] = total;
-                localStorage.setItem(`montrealRunnerHighScore_${state.selectedHero}`, String(total));
+            }
+
+            if (typeof window.publishSharedRunnerScore === 'function') {
+                window.publishSharedRunnerScore(state.selectedHero, total, distMeters);
             }
 
             const hero = state.heroes[state.selectedHero];
@@ -1627,6 +1842,20 @@
             document.getElementById('hud').classList.add('hidden');
             document.getElementById('startScreen').classList.remove('hidden');
         });
+
+        function openLeaderboardModal() {
+            document.getElementById('leaderboardModal').classList.remove('hidden');
+        }
+
+        function closeLeaderboardModal() {
+            document.getElementById('leaderboardModal').classList.add('hidden');
+        }
+
+        document.getElementById('leaderboardHudBtn').addEventListener('click', openLeaderboardModal);
+        document.getElementById('openLeaderboardStartBtn').addEventListener('click', openLeaderboardModal);
+        document.getElementById('openLeaderboardEndBtn').addEventListener('click', openLeaderboardModal);
+        document.getElementById('closeLeaderboardBtn').addEventListener('click', closeLeaderboardModal);
+        document.getElementById('closeLeaderboardBottomBtn').addEventListener('click', closeLeaderboardModal);
 
         document.getElementById('musicToggleBtn').addEventListener('click', () => {
             const isOn = christmasAudio.toggle();
